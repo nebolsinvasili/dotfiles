@@ -1,0 +1,150 @@
+# =========================
+# Terminal & Shell
+# =========================
+[terminal]
+enabled = true,
+packages = [
+  "alacritty",                 # GPU-ускоренный терминал
+  "kitty",                     # Терминал с расширенными возможностями
+  "zsh",                       # Оболочка командной строки
+  "zsh-autosuggestions",       # Подсказки команд из истории
+  "zsh-history-substring-search", # Поиск по истории по подстроке
+  "zsh-syntax-highlighting"    # Подсветка синтаксиса команд
+]
+
+# =========================
+# Window Manager & Session
+# =========================
+[wm]
+packages = [
+  "bspwm",                     # Тайловый оконный менеджер
+  "sxhkd",                     # Демон горячих клавиш для bspwm
+  "picom",                     # Композитор (тени, прозрачность)
+  "polybar",                   # Панель состояния
+  "lxsession",                 # Управление сессией X11
+  "xsettingsd"                 # XSettings (темы, DPI, шрифты)
+]
+
+# =========================
+# Editor & IDE
+# =========================
+[editor]
+packages = [
+  "neovim",                    # Консольный текстовый редактор
+  "geany"                      # Лёгкая графическая IDE
+]
+
+# =========================
+# File Managers & Utils
+# =========================
+[filemanager]
+packages = [
+  "thunar",                    # Графический файловый менеджер
+  "yazi",                      # TUI файловый менеджер
+  "tumbler",                   # Генерация миниатюр
+  "gvfs-mtp",                  # Поддержка MTP-устройств
+  "xdg-user-dirs"              # Стандартные пользовательские каталоги
+]
+
+# =========================
+# CLI Utilities
+# =========================
+[cli]
+packages = [
+  "bat",                       # cat с подсветкой синтаксиса
+  "eza",                       # Современная замена ls
+  "fzf",                       # Нечёткий поиск в терминале
+  "jq",                        # Работа с JSON
+  "xclip",                     # Буфер обмена X11
+  "xdo",                       # Управление X11 окнами (CLI)
+  "xdotool",                   # Симуляция ввода и мыши
+  "xcolor",                    # Пипетка цвета
+  "pacman-contrib"             # Доп. утилиты для pacman
+]
+
+# =========================
+# Media & Graphics
+# =========================
+[media]
+packages = [
+  "mpv",                       # Видеоплеер
+  "mpc",                       # CLI клиент MPD
+  "mpd",                       # Музыкальный демон
+  "ncmpcpp",                   # TUI клиент MPD
+  "maim",                      # Скриншоты
+  "imagemagick",               # Работа с изображениями
+  "feh",                       # Просмотрщик изображений / обои
+  "playerctl",                 # Управление медиаплеерами
+  "pamixer",                   # Управление громкостью PulseAudio
+  "brightnessctl"              # Управление яркостью
+]
+
+# =========================
+# Browser & Internet
+# =========================
+[internet]
+packages = [
+  "firefox"                    # Веб-браузер
+]
+
+# =========================
+# Menu & Launchers
+# =========================
+[launcher]
+packages = [
+  "rofi",                      # Лаунчер приложений
+  "jgmenu"                     # Контекстное меню
+]
+
+# =========================
+# Development
+# =========================
+[development]
+packages = [
+  "base-devel",                # Инструменты для сборки пакетов
+  "git",                       # Система контроля версий
+  "npm",                       # Менеджер пакетов Node.js
+  "rustup",                    # Установка и управление Rust
+  "python-gobject"             # Python биндинги для GObject
+]
+
+# =========================
+# Xorg & Display Tools
+# =========================
+[xorg]
+packages = [
+  "xinit",                     # Запуск X-сессии через startx
+  "xorg-xdpyinfo",             # Информация о дисплее X11
+  "xorg-xkill",                # Завершение X-приложений
+  "xorg-xprop",                # Просмотр свойств X-окон
+  "xorg-xrandr",               # Управление экранами
+  "xorg-xsetroot",             # Установка фона root-окна
+  "xorg-xwininfo",             # Информация об окнах
+  "xorg-xrdb"                  # Загрузка Xresources
+]
+
+# =========================
+# Notifications & Desktop
+# =========================
+[desktop]
+packages = [
+  "dunst",                     # Демон уведомлений
+  "clipcat",                   # Менеджер истории буфера обмена
+  "redshift"                   # Коррекция цветовой температуры
+]
+
+# =========================
+# Appearance: Icons, Fonts
+# =========================
+[appearance]
+enabled = false
+packages = [
+  "papirus-icon-theme",        # Иконки
+  "libwebp",                   # Поддержка формата WebP
+  "webp-pixbuf-loader",        # WebP для GTK
+  "ttf-inconsolata",           # Шрифт Inconsolata
+  "ttf-jetbrains-mono",        # JetBrains Mono
+  "ttf-jetbrains-mono-nerd",   # JetBrains Mono Nerd Font
+  "ttf-terminus-nerd",         # Terminus Nerd Font
+  "ttf-ubuntu-mono-nerd"       # Ubuntu Mono Nerd Font
+]

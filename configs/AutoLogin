@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# =========================================================
+# 🧩 setup-autologin.sh — красивый интерактивный настройщик автологина на TTY1
+# =========================================================
+set -euo pipefail
+
+# === Цвета и стили ===
+RED="\033[0;31m"
+GREEN="\033[0;32m"
+YELLOW="\033[0;33m"
+BLUE="\033[0;34m"
+BOLD="\033[1m"
+RESET="\033[0m"
+
+info()  { printf "${BLUE}➜${RESET} %b\n" "$1"; }
+ok()    { printf "${GREEN}✔${RESET} %b\n" "$1"; }
+warn()  { printf "${YELLOW}⚠${RESET} %b\n" "$1"; }
+err()   { printf "${RED}✖${RESET} %b\n" "$1"; }
+
+# === Проверка root ===
+if [[ $EUID -ne 0 ]]; then
+  err "Требуется запуск от root. Используйте:"
+  echo "   sudo $0"
+  exit 1
+fi
+
+# === Приветствие ===
+printf "\n${BOLD}🧩 Настройка автологина в консоли (TTY1)${RESET}\n"
+printf "Настройка автоматического входа в систему без запроса пароля.\n\n"
+
+# === Выбор пользователя ===
+info "Доступные пользователи:"
+mapfile -t users < <(awk -F: '$3 >= 1000 && $1 != "nobody" {print $1}' /etc/passwd)
+
+for i in "${!users[@]}"; do
+  printf "  %2d) 👤 %s\n" "$((i+1))" "${users[$i]}"
+done
+
+printf "\n"
+read -r -p "👉 Выберите номер пользователя [1]: " choice
+choice=${choice:-1}
+
+if ! [[ "$choice" =~ ^[0-9]+$ ]] || (( choice < 1 || choice > ${#users[@]} )); then
+  err "Некорректный выбор!"
+  exit 1
+fi
+
+USERNAME="${users[$((choice-1))]}"
+ok "Выбран пользователь: ${BOLD}${USERNAME}${RESET}"
+
+# === Настройки путей ===
+DIR="/etc/systemd/system/getty@tty1.service.d"
+FILE="$DIR/override.conf"
+
+printf "\n${BOLD}⚙️  Настройка параметров:${RESET}\n"
+printf "Файл конфигурации: ${BOLD}${FILE}${RESET}\n"
+
+# === Проверка существования и предложение бэкапа ===
+if [[ -f "$FILE" ]]; then
+  warn "Найден существующий файл override.conf."
+  read -r -p "Сделать резервную копию? [Y/n]: " do_backup
+  do_backup=${do_backup:-Y}
+
+  if [[ "$do_backup" =~ ^([yY]|[yY][eE][sS])$ ]]; then
+    backup_file="${FILE}.bak.$(date +%F-%H%M%S)"
+    cp "$FILE" "$backup_file"
+    ok "Бэкап сохранён в ${backup_file}"
+  else
+    warn "Бэкап пропущен."
+  fi
+fi
+
+# === Подтверждение перед записью ===
+printf "\n${YELLOW}🚀 Действия:${RESET}\n"
+echo " - Создание каталога: $DIR"
+echo " - Запись override.conf для пользователя: ${USERNAME}"
+echo " - Перезапуск systemd-юнит getty@tty1.service"
+read -r -p "Продолжить? [Y/n]: " confirm
+confirm=${confirm:-Y}
+if [[ ! "$confirm" =~ ^([yY]|[yY][eE][sS])$ ]]; then
+  err "Операция отменена пользователем."
+  exit 0
+fi
+
+# === Создание каталога ===
+mkdir -p "$DIR"
+
+# === Запись нового override.conf ===
+cat > "$FILE" <<EOF
+[Service]
+ExecStart=
+ExecStart=-/usr/bin/agetty --autologin ${USERNAME} --noclear %I \$TERM
+EOF
+
+ok "Файл конфигурации успешно записан: ${FILE}"
+
+# === Применение изменений ===
+info "Перезапускаю systemd..."
+systemctl daemon-reload
+# systemctl restart getty@tty1.service
+ok "Автологин включён для пользователя: ${BOLD}${USERNAME}${RESET}"
+
+# === Итог ===
+printf "\n${GREEN}✅ Готово!${RESET}\n"
+echo "Теперь при запуске системы произойдёт автоматический вход в пользователя ${USERNAME}."
+echo "Вы можете проверить работу без перезагрузки: нажмите ${BOLD}Ctrl+Alt+F1${RESET} и посмотрите TTY1."
+printf "\n"
+
+exit 0

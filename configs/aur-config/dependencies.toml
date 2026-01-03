@@ -1,0 +1,6 @@
+[base]
+packages = ["archlinux-keyring", "base-devel"]
+
+[utils]
+packages = ["wget", "git", "stow"]
+

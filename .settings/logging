@@ -1,0 +1,155 @@
+#!/bin/sh
+# ============================================================
+#
+# ██╗      ██████╗  ██████╗  ██████╗ ███████╗██████╗
+# ██║     ██╔═══██╗██╔════╝ ██╔════╝ ██╔════╝██╔══██╗
+# ██║     ██║   ██║██║  ███╗██║  ███╗█████╗  ██████╔╝
+# ██║     ██║   ██║██║   ██║██║   ██║██╔══╝  ██╔══██╗
+# ███████╗╚██████╔╝╚██████╔╝╚██████╔╝███████╗██║  ██║
+# ╚══════╝ ╚═════╝  ╚═════╝  ╚═════╝ ╚══════╝╚═╝  ╚═╝
+#  ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗
+# ██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝
+# ██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗
+# ██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║
+# ╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝
+#  ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝     #
+#
+#  Project : Logger configuration
+#  Purpose : A script containing the main colors of the installer.
+#  Author  : nebolsinvasili
+#  Repo    : https://github.com/nebolsinvasili/dotfiles.git
+#
+#  License : GPL-3.0
+#  Created : 2021
+#  Updated : 2025-03-24
+#
+# ============================================================
+
+# Checking if there is a terminal with colors
+if command -v tput >/dev/null 2>&1 && [ "$(tput colors)" -ge 8 ]; then
+  # ANSI via tput
+  C_RED="$(tput setaf 1)"
+  C_GREEN="$(tput setaf 2)"
+  C_YELLOW="$(tput setaf 3)"
+  C_BLUE="$(tput setaf 4)"
+  C_MAGENTA="$(tput setaf 5)"
+  C_CYAN="$(tput setaf 6)"
+  C_WHITE="$(tput setaf 7)"
+
+  C_BOLD="$(tput bold)"
+  C_DIM="$(tput dim)"
+  C_RESET="$(tput sgr0)"
+else
+  # Fallback
+  C_RED=""
+  C_GREEN=""
+  C_YELLOW=""
+  C_BLUE=""
+  C_MAGENTA=""
+  C_CYAN=""
+  C_WHITE=""
+
+  C_BOLD=""
+  C_DIM=""
+  C_RESET=""
+fi
+
+# =========================================================
+# Semantic aliases
+# =========================================================
+
+CLR_ERROR="${C_BOLD}${C_RED}"
+CLR_WARN="${C_BOLD}${C_YELLOW}"
+CLR_INFO="${C_CYAN}"
+CLR_OK="${C_BOLD}${C_GREEN}"
+CLR_TITLE="${C_BOLD}${C_MAGENTA}"
+CLR_PATH="${C_BLUE}"
+CLR_RESET="${C_RESET}"
+
+# ============================================================
+# Icon configuration
+# ============================================================
+#
+# This section defines a unified logging format with icons.
+# Icons are selected based on terminal capabilities.
+# If Unicode icons are not supported, ASCII fallbacks are used.
+#
+# Output format:
+#   <COLOR><ICON><SPACE><MESSAGE><RESET>
+#
+# ============================================================
+
+# ------------------------------------------------------------
+# Detect Unicode / icon support
+# ------------------------------------------------------------
+#
+# Icons may not render correctly in:
+#   - dumb terminals
+#   - minimal TTY environments
+#   - some CI systems
+#
+# This check is intentionally conservative.
+#
+
+if [ "${TERM:-}" = "dumb" ]; then
+  ICONS_ENABLED=0
+else
+  ICONS_ENABLED=1
+fi
+
+# ------------------------------------------------------------
+# Icon definitions
+# ------------------------------------------------------------
+
+if [ "$ICONS_ENABLED" -eq 1 ]; then
+  # Unicode icons (preferred)
+  ICON_INFO="ℹ"
+  ICON_OK="✔"
+  ICON_WARN="⚠"
+  ICON_ERROR="✖"
+else
+  # ASCII fallback icons
+  ICON_INFO="[i]"
+  ICON_OK="[+]"
+  ICON_WARN="[!]"
+  ICON_ERROR="[x]"
+fi
+
+# ------------------------------------------------------------
+# Unified logging function
+# ------------------------------------------------------------
+#
+# Arguments:
+#   $1 - color prefix
+#   $2 - icon
+#   $3 - message
+#
+
+_log() {
+  local color="$1"
+  local icon="$2"
+  shift 2
+
+  # Убираем лидирующие пробелы после каждого переноса
+  local text=$(echo -e "$*" | sed 's/^[[:space:]]*//; s/\n[[:space:]]*/\n/g')
+
+  # Выводим одну иконку в начале
+  printf "%b%s %b%s\n" "$color" "$icon" "$text" "$CLR_RESET"
+}
+
+# ------------------------------------------------------------
+# Public logging helpers
+# ------------------------------------------------------------
+
+log_error() { _log "$CLR_ERROR" "$ICON_ERROR" "$*"; }
+log_warn() { _log "$CLR_WARN" "$ICON_WARN" "$*"; }
+log_ok() { _log "$CLR_OK" "$ICON_OK" "$*"; }
+log_info() { _log "$CLR_INFO" "$ICON_INFO" "$*"; }
+
+# ============================================================
+# Entry point
+# ============================================================
+
+log_title() {
+  printf "%b%s%b\n" "$CLR_TITLE" "$*" "$CLR_RESET"
+}

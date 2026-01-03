@@ -1,0 +1,80 @@
+#!/bin/sh
+# ============================================================
+#
+# ██╗   ██╗ █████╗ ██╗   ██╗                                            
+# ╚██╗ ██╔╝██╔══██╗╚██╗ ██╔╝                                            
+#  ╚████╔╝ ███████║ ╚████╔╝                                             
+#   ╚██╔╝  ██╔══██║  ╚██╔╝                                              
+#    ██║   ██║  ██║   ██║                                               
+#    ╚═╝   ╚═╝  ╚═╝   ╚═╝                                               
+# ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗     ███████╗██████╗ 
+# ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║     ██╔════╝██╔══██╗
+# ██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║     █████╗  ██████╔╝
+# ██║██║╚██╗██║╚════██║   ██║   ██╔══██║██║     ██║     ██╔══╝  ██╔══██╗
+# ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗███████╗██║  ██║
+# ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝#
+#
+#  Project  : YAY Installer
+#  Purpose  : Install package manager.
+#  Author   : nebolsinvasili
+#  Repo     : https://github.com/nebolsinvasili/dotfiles.git
+#
+#  License  : GPL-3.0
+#  Created  : 2021
+#  Updated  : 2025-03-24
+#
+# ============================================================
+
+DOTFILES_DIR="/home/nebolsinvasili/dotfiles-act"
+
+# Load logging functions
+LOGGING_DIR="$DOTFILES_DIR/.settings/logging"
+if [ -f "$LOGGING_DIR" ]; then
+    . "$LOGGING_DIR"
+else
+    echo "WARNING: Logging file not found: $LOGGING_DIR"
+    exit 1
+fi
+
+# Absolute path of running script
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+
+# Default values
+DEPENDENCIES_FILE="$SCRIPT_DIR/dependencies.toml"
+PACKAGE_MANAGER="pacman"
+
+function install_aur_package_manager() {
+    log_title "Installing AUR Package Manager..."
+
+    local build_dir="$HOME/yay"
+
+    if [[ -d "$build_dir" ]]; then
+        sudo rm -rf "$build_dir"
+    fi
+
+    log_info "Клонируем репозиторий YAY"
+    git clone https://aur.archlinux.org/yay.git "$build_dir"
+
+    cd "$build_dir"
+    log_info "Собираем и устанавливаем YAY"
+    makepkg -si --noconfirm
+    log_ok "YAY успешно установлен"
+}
+
+function check_aur_package_manager() {
+    log_info "Проверяем доступность YAY"
+    if command -v yay >/dev/null 2>&1; then
+        log_ok "YAY установлен и готов к работе"
+        yay --version | head -n 1
+    else
+        log_ok "YAY не найден в PATH.${RESET}"
+        exit 1
+    fi
+}
+
+# MAIN
+source $DOTFILES_DIR/.settings/DependenciesInstaller
+
+install_dependencies -d "$DEPENDENCIES_FILE" -m pacman
+install_aur_package_manager
+check_aur_package_manager

@@ -1,0 +1,8 @@
+[shell]
+packages = ["zsh"]
+
+[utils]
+packages = ["fzf", "fzf", "zoxide", "yazi", "exa", "man", "bat", "tar", "unzip"]
+
+[install-utils]
+packages = ["stow"]

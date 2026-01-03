@@ -1,0 +1,161 @@
+#!/bin/sh
+#  ██████╗ ██╗ ██████╗███████╗    ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗     ███████╗██████╗
+#  ██╔══██╗██║██╔════╝██╔════╝    ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║     ██╔════╝██╔══██╗
+#  ██████╔╝██║██║     █████╗      ██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║     █████╗  ██████╔╝
+#  ██╔══██╗██║██║     ██╔══╝      ██║██║╚██╗██║╚════██║   ██║   ██╔══██║██║     ██║     ██╔══╝  ██╔══██╗
+#  ██║  ██║██║╚██████╗███████╗    ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗███████╗██║  ██║
+#  ╚═╝  ╚═╝╚═╝ ╚═════╝╚══════╝    ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝
+#
+#	Author	-	gh0stzk
+#	Repo	-	https://github.com/gh0stzk/dotfiles
+#	Last updated	-	24.03.2025 08:58:16
+#
+#	RiceInstaller - Script to install my dotfiles
+#
+# Copyright (C) 2021-2025 gh0stzk <z0mbi3.zk@protonmail.com>
+# Licensed under GPL-3.0 license
+
+DOTFILES_DIR="/home/nebolsinvasili/dotfiles-act"
+
+# Load logging functions
+LOGGING_DIR="$DOTFILES_DIR/.settings/logging"
+if [ -f "$LOGGING_DIR" ]; then
+  . "$LOGGING_DIR"
+else
+  echo "WARNING: Logging file not found: $LOGGING_DIR"
+  exit 1
+fi
+
+# Absolute path of running script
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+
+# Colors
+CRE=$(tput setaf 1) # Red
+CYE=$(tput setaf 3) # Yellow
+CGR=$(tput setaf 2) # Green
+CBL=$(tput setaf 4) # Blue
+BLD=$(tput bold)    # Bold
+CNC=$(tput sgr0)    # Reset colors
+
+initial_checks() {
+  # Verificar usuario root
+  if [ "$(id -u)" = 0 ]; then
+    printf "This script MUST NOT be run as root user."
+    exit 1
+  fi
+
+  # Verificar directorio HOME
+  if [ "$PWD" != "$HOME" ]; then
+    printf "The script must be executed from HOME directory."
+    exit 1
+  fi
+}
+
+install_dependencies() {
+  clear
+  logo "Installing needed packages from official repositories..."
+  sleep 2
+
+  sudo pacman -Syy
+  dependencies="archlinux-keyring base-devel wget git stow"
+
+  # Arrays temporales
+  failed_deps=""
+  retry_failed=""
+
+  # First pass
+  for pkg in $dependencies; do
+    sleep 0.50
+    if ! sudo pacman -S --noconfirm --needed "$pkg"; then
+      failed_deps="$failed_deps $pkg"
+    fi
+  done
+
+  # If there were failures, try again
+  if [ -n "$failed_deps" ]; then
+    printf "\n%b\n" "${BLD}${CRE}These dependencies failed:${CYE}${failed_deps}${CNC}"
+    printf "%b\n\n" "${BLD}${CYE}Retrying installation..${CNC}"
+
+    for pkg in $failed_deps; do
+      sleep 0.50
+      if ! sudo pacman -S --noconfirm --needed "$pkg"; then
+        retry_failed="$retry_failed $pkg"
+      fi
+    done
+  fi
+
+  # Final Result
+  if [ -n "$retry_failed" ]; then
+    printf "\n%b\n" "${BLD}${CRE}These dependencies could not be installed after two attempts:${CYE}${retry_failed}${CNC}"
+    printf "%b\n\n" "${BLD}${CBL}missing_apps.txt ${CYE}file was created on your ${CGR}HOME ${CYE}with the list."
+    printf "The following dependencies failed, please install manually:\n%s\n" "$retry_failed" >missing_apps.txt
+  else
+    if [ -z "$failed_deps" ]; then
+      printf "\n%b\n" "${BLD}${CGR}All dependencies were installed successfully.${CNC}"
+    else
+      printf "\n%b\n" "${BLD}${CGR}All dependencies were installed successfully after retry${CNC}"
+    fi
+  fi
+  sleep 3
+}
+
+# Logo
+logo() {
+  text="$1"
+  printf "%b" "
+               %%%
+        %%%%%//%%%%%
+      %%************%%%
+  (%%//############*****%%
+ %%%%**###&&&&&&&&&###**//
+ %%(**##&&&#########&&&##**
+ %%(**##*****#####*****##**%%%
+ %%(**##     *****     ##**
+   //##   @@**   @@   ##//
+     ##     **###     ##
+     #######     #####//
+       ###**&&&&&**###
+       &&&         &&&
+       &&&////   &&
+          &&//@@@**
+            ..***
+
+   ${BLD}${CRE}[ ${CYE}${text} ${CRE}]${CNC}\n\n"
+}
+
+final_prompt() {
+  clear
+  logo "Installation Complete"
+
+  printf "%b\n" "${BLD}${CGR}Installation completed successfully!${CNC}"
+  printf "%b\n\n" "${BLD}${CRE}You ${CBL}MUST ${CRE}restart your system to apply changes${CNC}"
+
+  while :; do
+    printf "%b" "${BLD}${CYE}Reboot now?${CNC} [y/N]: "
+    read -r yn
+    case "$yn" in
+    [Yy])
+      printf "\n%b\n" "${BLD}${CGR}Initiating reboot...${CNC}"
+      sleep 1
+      sudo reboot
+      break
+      ;;
+    [Nn] | "")
+      printf "\n%b\n\n" "${BLD}${CYE}You really need to reboot bro!!${CNC}"
+      break
+      ;;
+    *) printf " %b%bError:%b write 'y' or 'n'\n" "${BLD}" "${CRE}" "${CNC}" ;;
+    esac
+  done
+}
+
+# --- Main run --- #
+source $DOTFILES_DIR/.settings/DependenciesInstaller
+
+# Default values
+DEPENDENCIES_FILE="$SCRIPT_DIR/dependencies.toml"
+PACKAGE_MANAGER="yay"
+
+# LC_ALL=C xdg-user-dirs-update --force
+
+install_dependencies -d "$DEPENDENCIES_FILE" -m yay
