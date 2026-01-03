@@ -1,14 +1,36 @@
 [xorg]
-packages = ["xorg", "xorg-xinit", "xorg-server", "xorg-xrandr", "xorg-xrdb"]
+packages = [
+"xorg", 
+"xorg-xinit", 
+"xorg-server", 
+"xorg-xrandr", 
+"xorg-xrdb"
+]
 
 [bspwm]
-packages = ["bspwm", "sxhkd"]
+packages = [
+"bspwm", 
+"sxhkd"
+]
 
 [ui]
-packages = ["polybar", "picom", "rofi", "dunst", "feh"]
+packages = [
+"polybar", 
+"picom", 
+"rofi", 
+"dunst", 
+"feh"
+]
 
 [utils]
-packages = ["scrot", "nemo", "cups", "network-manager-applet"]
+packages = [
+"scrot", 
+"nemo", 
+"cups", 
+"network-manager-applet"
+]
 
 [install-utils]
-packages = ["stow"]
+packages = [
+"stow"
+]

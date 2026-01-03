@@ -28,16 +28,7 @@
 # Absolute path of running script
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 
-DOTFILES_DIR="/home/nebolsinvasili/dotfiles-act"
-
-# Load TOML parser
-PARSER_DIR="$DOTFILES_DIR/.settings/toml_parser.sh"
-if [ -f "$PARSER_DIR" ]; then
-  . "$PARSER_DIR"
-else
-  echo "WARNING: Parser file not found: $PARSER_DIR"
-  exit 1
-fi
+DOTFILES_DIR="/home/nebolsinvasili/dotfiles"
 
 # Load logging functions
 LOGGING_DIR="$DOTFILES_DIR/.settings/logging"

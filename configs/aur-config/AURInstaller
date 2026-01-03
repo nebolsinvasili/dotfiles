@@ -25,7 +25,7 @@
 #
 # ============================================================
 
-DOTFILES_DIR="/home/nebolsinvasili/dotfiles-act"
+DOTFILES_DIR="/home/nebolsinvasili/dotfiles"
 
 # Load logging functions
 LOGGING_DIR="$DOTFILES_DIR/.settings/logging"

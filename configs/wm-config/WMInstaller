@@ -25,7 +25,7 @@
 #
 # ============================================================
 
-DOTFILES_DIR="/home/nebolsinvasili/dotfiles-act"
+DOTFILES_DIR="/home/nebolsinvasili/dotfiles"
 
 # Load logging functions
 LOGGING_DIR="$DOTFILES_DIR/.settings/logging"
@@ -150,4 +150,14 @@ export PATH="$HOME/.config/bspwm/bin:$PATH"
 exec sxhkd -c ~/.config/bspwm/config/sxhkdrc &  
 exec bspwm -c ~/.config/bspwm/bspwmrc
 EOF
+
+PROGRAMS_DIR=$DOTFILES_DIR/programs
+PROGRAMS=(
+  $PROGRAMS_DIR/terminal/xorg/kitty/install.sh
+  $PROGRAMS_DIR/cli/install.sh
+  $PROGRAMS_DIR/brousers/firefox/install.sh
+  )
+for dir in $PROGRAMS; do
+  source $dir
+done
 
