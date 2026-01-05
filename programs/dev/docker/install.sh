@@ -5,3 +5,5 @@ yay -S docker docker-compose --noconfirm
 
 # Запуск и настройка Docker
 sudo systemctl start docker
+
+sudo usermod -aG docker $USER && newgrp docker

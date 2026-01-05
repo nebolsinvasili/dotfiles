@@ -158,6 +158,11 @@ PROGRAMS=(
   $PROGRAMS_DIR/brousers/firefox/install.sh
   )
 for dir in $PROGRAMS; do
-  source $dir
+  if [ -f "$dir" ]; then
+    source $dir || { echo "Failed to source $dir"; exit 1; }
+  else
+    echo "Install script not found: $dir"
+    exit 1
+  fi
 done
 
