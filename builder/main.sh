@@ -39,7 +39,7 @@ ERROR_MSG_TMP_FILE="${SCRIPT_TMP_DIR}/installer.err"
 PROCESS_LOG_TMP_FILE="${SCRIPT_TMP_DIR}/process.log"
 PROCESS_RET_TMP_FILE="${SCRIPT_TMP_DIR}/process.ret"
 
-DOTFILES_DIR="/home/nebolsinvasili/dotfiles-act/builder"
+DOTFILES_DIR="/home/nebolsinvasili/dotfiles"
 # Load logging functions
 LOGGING_DIR="$DOTFILES_DIR/.settings/logging"
 AUTOSTART_DIR="$DOTFILES_DIR/bin/arch-os-autostart"

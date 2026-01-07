@@ -1,4 +1,4 @@
-﻿function y() {
+﻿function yazi() {
   local tmp="$(mktemp -t "yazi-cwd.XXXXXX")"
   yazi "$@" --cwd-file="$tmp"
   if cwd="$(cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
@@ -6,6 +6,40 @@
   fi
   rm -f -- "$tmp"
 }
+
+# Source - https://superuser.com/a␍
+# Posted by Simba, modified by community. See post 'Timeline' for change history␍
+# Retrieved 2026-01-06, License - CC BY-SA 4.0␍
+function ranger {
+#   local IFS=$'\t\n'
+#   local tempfile="$(mktemp -t tmp.XXXXXX)"
+#   local ranger_cmd=(
+#     command
+#     ranger
+#     --cmd="map Q chain shell echo %d > \"$tempfile\"; quitall"
+#   )
+#
+#   ${ranger_cmd[@]} "$@"
+#   if [[ -f "$tempfile" ]] && [[ "$(cat -- "$tempfile")" != "$PWD" ]]; then
+#     cd -- "$(cat -- "$tempfile")" || return
+#   fi
+#   command rm -f -- "$tempfile" 2>/dev/null
+# }
+    local IFS=$'"'\t\n'"'
+    local tempfile="$(mktemp -t tmp.XXXXXX)"
+    local ranger_cmd=(
+        command
+        ranger
+        --cmd="map q chain shell echo %d > \"$tempfile\"; quitall"
+    )
+    
+    ${ranger_cmd[@]} "$@"
+    if [[ -f "$tempfile" ]] && [[ "$(cat -- "$tempfile")" != "$(echo -n $(pwd))" ]]; then
+        cd -- "$(cat "$tempfile")" || return
+    fi
+    command rm -f -- "$tempfile" 2>/dev/null
+}
+
 
 # Makes creating a new tmux session (with a specific name) easier
 function tn() {

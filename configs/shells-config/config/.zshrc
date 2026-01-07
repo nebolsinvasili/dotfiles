@@ -1,17 +1,49 @@
+# ============================================================
+#
+#    ███████╗███████╗██╗  ██╗██████╗  ██████╗
+#    ╚══███╔╝██╔════╝██║  ██║██╔══██╗██╔════╝
+#      ███╔╝ ███████╗███████║██████╔╝██║     
+#     ███╔╝  ╚════██║██╔══██║██╔══██╗██║     
+# ██╗███████╗███████║██║  ██║██║  ██║╚██████╗
+# ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝
+#
+#  Project  : YAY Installer
+#  Purpose  : Install package manager.
+#  Author   : nebolsinvasili
+#  Repo     : https://github.com/nebolsinvasili/dotfiles.git
+#
+#  License  : GPL-3.0
+#  Created  : 2021
+#  Updated  : 2025-03-24
+#
+# ============================================================
+
+# =========================== VARS ===========================
 export PATH="$HOME/.local/bin:$HOME/.bin:$PATH"
+export VISUAL="${EDITOR}"
 export EDITOR="nvim"
 export GIT_EDITOR="nvim"
+
+export BROWSER='firefox'
+export HISTORY_IGNORE="(ls|cd|pwd|exit|sudo reboot|history|cd -|cd ..)"
+
 export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_DATA_HOME="$HOME/.local/share"
 export XDG_CACHE_HOME="$HOME/.cache"
 export XDG_STATE_HOME="$HOME/.local/state"
+
 export DOTFILES="$HOME/dotfiles"
+
 export XCURSOR_THEME=Qogir Cursors
 export XCURSOR_SIZE=14
 
 if [ -d "$HOME/.local/bin" ] ;
   then PATH="$HOME/.local/bin:$PATH"
 fi
+
+# if [ -x "$(command -v tmux)" ] && [ -n "${DISPLAY}" ] && [ -z "${TMUX}" ]; then
+#     exec tmux new-session -A -s ${USER} >/dev/null 2>&1
+# fi
 
 # PyEnv
 #export PYENV_ROOT="$HOME/.pyenv"
@@ -54,12 +86,11 @@ autoload -Uz compinit && compinit
 zinit cdreplay -q
 
 # History
+HISTFILE=~/.config/zsh/zhistory
 HISTSIZE=5000
-HISTFILE=~/.zsh_history
 SAVEHIST=$HISTSIZE
 HISTDUP=erase
 HIST_STAMPS="yyyy-mm-dd"
-
 setopt appendhistory
 setopt sharehistory
 setopt hist_ignore_space
@@ -67,6 +98,7 @@ setopt hist_ignore_all_dups
 setopt hist_save_no_dups
 setopt hist_ignore_dups
 setopt hist_find_no_dups
+
 
 # Completion styling
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'

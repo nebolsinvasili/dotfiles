@@ -97,23 +97,60 @@ else
   ICONS_ENABLED=1
 fi
 
-# ------------------------------------------------------------
-# Icon definitions
-# ------------------------------------------------------------
-
+# Консольные иконки
 if [ "$ICONS_ENABLED" -eq 1 ]; then
-  # Unicode icons (preferred)
-  ICON_INFO="ℹ"
-  ICON_OK="✔"
-  ICON_WARN="⚠"
-  ICON_ERROR="✖"
+  ICON_CONS_INFO="ℹ"
+  ICON_CONS_OK="✔"
+  ICON_CONS_WARN="⚠"
+  ICON_CONS_ERROR="✖"
 else
-  # ASCII fallback icons
-  ICON_INFO="[i]"
-  ICON_OK="[+]"
-  ICON_WARN="[!]"
-  ICON_ERROR="[x]"
+  ICON_CONS_INFO="[i]"
+  ICON_CONS_OK="[+]"
+  ICON_CONS_WARN="[!]"
+  ICON_CONS_ERROR="[x]"
 fi
+
+# Текстовые иконки для лог-файла
+ICON_FILE_INFO="[INFO]"
+ICON_FILE_OK="[OK]"
+ICON_FILE_WARN="[WARN]"
+ICON_FILE_ERROR="[ERROR]"
+
+[[ -n "${LOGGING_SH_LOADED:-}" ]] && return
+readonly LOGGING_SH_LOADED=1
+
+# ------------------------------------------------------------
+# Init logging file
+# ------------------------------------------------------------
+#
+# Arguments:
+#   $1 - log file path
+#
+
+log_init() {
+    if [[ $# -ne 1 ]]; then
+        printf 'ERROR: log_init requires exactly one argument (log file path)\n' >&2
+        return 1
+    fi
+
+    local log_path="$1"
+    local log_dir
+
+    # Приведение к абсолютному пути
+    log_path="$(cd "$(dirname "$log_path")" && pwd)/$(basename "$log_path")"
+    log_dir="$(dirname "$log_path")"
+
+    mkdir -p "$log_dir" || return 1
+
+    if [[ -f "$log_path" ]]; then
+        mv -f "$log_path" "$log_path.old"
+    fi
+
+    touch "$log_path" || return 1
+
+    # Экспортируем как глобальный контракт
+    LOG_FILE="$log_path"
+}
 
 # ------------------------------------------------------------
 # Unified logging function
@@ -127,24 +164,75 @@ fi
 
 _log() {
   local color="$1"
-  local icon="$2"
-  shift 2
+  local icon_console="$2"
+  local icon_file="$3"
+  shift 3
 
-  # Убираем лидирующие пробелы после каждого переноса
-  local text=$(echo -e "$*" | sed 's/^[[:space:]]*//; s/\n[[:space:]]*/\n/g')
+  local verbose="${VERBOSE_OVERRIDE:-0}"
 
-  # Выводим одну иконку в начале
-  printf "%b%s %b%s\n" "$color" "$icon" "$text" "$CLR_RESET"
+  # Формируем текст
+  local text
+  text=$(printf "%s\n" "$*" | sed 's/^[[:space:]]*//; s/\n[[:space:]]*/\n/g')
+
+  # ---- вывод в консоль (только при verbose=1) ----
+  if [ "$verbose" -eq 1 ]; then
+    printf "%b%s %b%s\n" "$color" "$icon_console" "$text" "$CLR_RESET"
+  fi
+
+  # ---- вывод в файл ----
+  if [ -n "${LOG_FILE:-}" ]; then
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "[$timestamp] $icon_file $text" >>"$LOG_FILE"
+  fi
 }
 
-# ------------------------------------------------------------
-# Public logging helpers
-# ------------------------------------------------------------
+# --------------------------
+# log_error с -v/--verbose
+# --------------------------
+log_error() {
+  local verbose=0
+  case "$1" in
+  -v | --verbose)
+    verbose=1
+    shift
+    ;;
+  esac
+  VERBOSE_OVERRIDE=$verbose _log "$CLR_ERROR" "$ICON_CONS_ERROR" "$ICON_FILE_ERROR" "$*"
+}
 
-log_error() { _log "$CLR_ERROR" "$ICON_ERROR" "$*"; }
-log_warn() { _log "$CLR_WARN" "$ICON_WARN" "$*"; }
-log_ok() { _log "$CLR_OK" "$ICON_OK" "$*"; }
-log_info() { _log "$CLR_INFO" "$ICON_INFO" "$*"; }
+log_warn() {
+  local verbose=0
+  case "$1" in
+  -v | --verbose)
+    verbose=1
+    shift
+    ;;
+  esac
+  VERBOSE_OVERRIDE=$verbose _log "$CLR_WARN" "$ICON_CONS_WARN" "$ICON_FILE_WARN" "$*"
+}
+
+log_ok() {
+  local verbose=0
+  case "$1" in
+  -v | --verbose)
+    verbose=1
+    shift
+    ;;
+  esac
+  VERBOSE_OVERRIDE=$verbose _log "$CLR_OK" "$ICON_CONS_OK" "$ICON_FILE_OK" "$*"
+}
+
+log_info() {
+  local verbose=0
+  case "$1" in
+  -v | --verbose)
+    verbose=1
+    shift
+    ;;
+  esac
+  VERBOSE_OVERRIDE=$verbose _log "$CLR_INFO" "$ICON_CONS_INFO" "$ICON_FILE_INFO" "$*"
+}
 
 # ============================================================
 # Entry point

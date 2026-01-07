@@ -43,100 +43,13 @@ SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 DEPENDENCIES_FILE="$SCRIPT_DIR/dependencies.toml"
 PACKAGE_MANAGER="yay"
 
-function choose_user() {
-    log_info "👤 Выберите пользователя для настройки:"
-    mapfile -t users < <(ls /home)
-
-    for i in "${!users[@]}"; do
-        echo -e "  ${YELLOW}$((i+1)))${RESET} ${users[$i]}"
-    done
-
-    echo -e "  ${YELLOW}0)${RESET} root"
-
-    read -rp "Введите номер пользователя [1]: " choice
-    choice=${choice:-1}
-
-    if [[ $choice -eq 0 ]]; then
-        TARGET_USER="root"
-        TARGET_HOME="/root"
-    elif (( choice >= 1 && choice <= ${#users[@]} )); then
-        TARGET_USER="${users[$((choice-1))]}"
-        TARGET_HOME="/home/$TARGET_USER"
-    else
-        log_error "Недопустимый выбор"
-        exit 1
-    fi
-
-    echo -e "➡ Установка будет выполнена для пользователя: $TARGET_USER"
-}
-
-function choose_shell() {
-    echo -e "\nДоступные shell:"
-    mapfile -t shells < <(grep '^/' /etc/shells)
-
-    for i in "${!shells[@]}"; do
-        echo -e "  ${YELLOW}$((i+1)))${RESET} ${shells[$i]}"
-    done
-
-    read -rp "Выберите номер shell [1]: " choice
-    choice=${choice:-1}
-
-    if [[ $choice -lt 1 || $choice -gt ${#shells[@]} ]]; then
-        log_error "Недопустимый выбор"
-        exit 1
-    fi
-
-    NEWSHELL="${shells[$((choice-1))]}"
-    log_info "Меняем shell на: $(basename "$NEWSHELL")"
-
-    # Меняем shell указанному пользователю
-    sudo chsh -s "$NEWSHELL" "$TARGET_USER"
-
-    log_ok "Shell изменён для пользователя ${TARGET_USER}"
-}
-
-# ⚙️ Stow конфиги
-function stow_configs() {
-    if [[ -d "$SCRIPT_DIR/config" ]]; then
-        log_info "Применяем конфигурацию через stow"
-        sudo -u "$TARGET_USER" bash -c "cd '$SCRIPT_DIR'\
-          && stow -R -v -t '$TARGET_HOME' config"
-        log_ok "Конфигурация применена пользователю ${TARGET_USER}"
-    else
-        log_error "'$SCRIPT_DIR/config' не найдена, пропускаем"
-    fi
-}
-
-change_default_shell() {
-    clear
-    log_title "Changing default shell to zsh"
-    zsh_path=$(command -v zsh)
-    sleep 2
-
-    if [ -z "$zsh_path" ]; then
-        printf "%b\n\n" "${BLD}${CRE}Zsh is not installed! Cannot change shell${CNC}"
-    fi
-
-    if [ "$SHELL" != "$zsh_path" ]; then
-        printf "%b\n" "${BLD}${CYE}Changing your shell to Zsh...${CNC}"
-
-        if chsh -s "$zsh_path"; then
-            printf "%b\n" "\n${BLD}${CGR}Shell changed successfully!${CNC}"
-        else
-            printf "%b\n\n" "\n${BLD}${CRE}Error changing shell!{CNC}"
-        fi
-    else
-        printf "%b\n\n" "${BLD}${CGR}Zsh is already your default shell!${CNC}"
-    fi
-    sleep 3
-}
 
 # MAIN
 source $DOTFILES_DIR/.settings/DependenciesInstaller
 
 install_dependencies -d "$DEPENDENCIES_FILE" -m yay
 
-stow -R -v -t ~/.config config
+stow -R -v -t ~ config
 # mkdir -p ~/.screenlayout && stow -R -v -t ~/.screenlayout .screenlayout
 
 sudo chmod +x ~/.config/bspwm/bspwmrc
@@ -147,19 +60,41 @@ sudo chmod +x ~/.config/bspwm/bin/run
 cat <<EOF >~/.xinitrc
 export PATH="$HOME/.config/bspwm/bin:$PATH"
 
+xrandr &&
+
+xrdb ~/.Xresources
+
 exec sxhkd -c ~/.config/bspwm/config/sxhkdrc &  
 exec bspwm -c ~/.config/bspwm/bspwmrc
+
 EOF
 
-PROGRAMS_DIR=$DOTFILES_DIR/programs
+# Сохранение текущей директории
+original_dir="$(pwd)"
+
+# Массив скриптов для установки
+PROGRAMS_DIR="$DOTFILES_DIR/programs"
 PROGRAMS=(
-  $PROGRAMS_DIR/terminal/xorg/kitty/install.sh
-  $PROGRAMS_DIR/cli/install.sh
-  $PROGRAMS_DIR/brousers/firefox/install.sh
-  )
-for dir in $PROGRAMS; do
+  "$PROGRAMS_DIR/terminal/xorg/kitty/install.sh"
+  "$PROGRAMS_DIR/cli/install.sh"
+  "$PROGRAMS_DIR/brousers/firefox/install.sh"
+)
+
+# Проходим по каждому скрипту в массиве
+for dir in "${PROGRAMS[@]}"; do
   if [ -f "$dir" ]; then
-    source $dir || { echo "Failed to source $dir"; exit 1; }
+    # Получаем директорию, в которой находится скрипт
+    script_dir=$(dirname "$dir")
+    
+    # Переходим в директорию скрипта
+    cd "$script_dir" || { echo "Не удалось перейти в директорию $script_dir"; exit 1; }
+    
+    # Выполняем скрипт
+    echo "Выполнение скрипта $dir в директории $(pwd)"
+    source "$dir" || { echo "Не удалось выполнить скрипт $dir"; exit 1; }
+    
+    # Возвращаемся в исходную директорию
+    cd "$original_dir" || { echo "Не удалось вернуться в исходную директорию"; exit 1; }
   else
     echo "Install script not found: $dir"
     exit 1

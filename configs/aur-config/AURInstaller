@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # ============================================================
 #
 # ██╗   ██╗ █████╗ ██╗   ██╗                                            
@@ -25,23 +25,17 @@
 #
 # ============================================================
 
-DOTFILES_DIR="/home/nebolsinvasili/dotfiles"
+set -euo pipefail
 
-# Load logging functions
-LOGGING_DIR="$DOTFILES_DIR/.settings/logging"
-if [ -f "$LOGGING_DIR" ]; then
-    . "$LOGGING_DIR"
+# Load logging module
+LOGGING_MODULE="$DOTFILES/.settings/logging"
+if [[ -r "$LOGGING_MODULE" ]]; then
+    source "$LOGGING_MODULE"
+    log_init "./installer.log"
 else
-    echo "WARNING: Logging file not found: $LOGGING_DIR"
-    exit 1
+    printf 'WARNING: logging module not found: %s\n' "$LOGGING_MODULE" >&2
 fi
 
-# Absolute path of running script
-SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
-
-# Default values
-DEPENDENCIES_FILE="$SCRIPT_DIR/dependencies.toml"
-PACKAGE_MANAGER="pacman"
 
 function install_aur_package_manager() {
     log_title "Installing AUR Package Manager..."
@@ -56,9 +50,9 @@ function install_aur_package_manager() {
     git clone https://aur.archlinux.org/yay.git "$build_dir"
 
     cd "$build_dir"
-    log_info "Собираем и устанавливаем YAY"
+    log_info -v "Собираем и устанавливаем YAY"
     makepkg -si --noconfirm
-    log_ok "YAY успешно установлен"
+    log_ok -v "YAY успешно установлен"
 }
 
 function check_aur_package_manager() {
@@ -67,14 +61,27 @@ function check_aur_package_manager() {
         log_ok "YAY установлен и готов к работе"
         yay --version | head -n 1
     else
-        log_ok "YAY не найден в PATH.${RESET}"
+        log_error -v "YAY не найден в PATH.${RESET}"
         exit 1
     fi
 }
 
 # MAIN
-source $DOTFILES_DIR/.settings/DependenciesInstaller
 
-install_dependencies -d "$DEPENDENCIES_FILE" -m pacman
+# Absolute path of running script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Load logging module
+DepInst_MODULE="$DOTFILES/.settings/DependenciesInstaller"
+if [[ -r "$DepInst_MODULE" ]]; then
+    source "$DepInst_MODULE"
+else
+    printf 'WARNING: dependencies module not found: %s\n' "$DepInst_MODULE" >&2
+fi
+
+install_dependencies \
+  -d "$SCRIPT_DIR/dependencies.toml" \
+  -l "$SCRIPT_DIR/logs/installer.log" \
+  -m pacman
 install_aur_package_manager
 check_aur_package_manager

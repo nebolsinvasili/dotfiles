@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # ============================================================
 #
 # ██████╗ ███████╗██████╗ ███████╗███╗   ██╗██████╗ ███████╗███╗   ██╗ ██████╗██╗███████╗███████╗
@@ -25,26 +25,28 @@
 #
 # ============================================================
 
-# Absolute path of running script
-SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+set -euo pipefail
 
-DOTFILES_DIR="/home/nebolsinvasili/dotfiles"
-
-# Load logging functions
-LOGGING_DIR="$DOTFILES_DIR/.settings/logging"
-if [ -f "$LOGGING_DIR" ]; then
-  . "$LOGGING_DIR"
+# Load logging module
+LOGGING_MODULE="$DOTFILES/.settings/logging"
+if [[ -r "$LOGGING_MODULE" ]]; then
+    source "$LOGGING_MODULE"
 else
-  echo "WARNING: Logging file not found: $LOGGING_DIR"
-  exit 1
+    printf 'WARNING: logging module not found: %s\n' "$LOGGING_MODULE" >&2
 fi
 
+# Absolute path of running script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Default values
-DEPENDENCIES_FILE="$SCRIPT_DIR/dependencies.toml"
+LOG_FILE=""
+DEPENDENCIES_FILE=""
+PACKAGE_MANAGER="pacman"
+
 ONLY_BLOCKS=""
 SKIP_BLOCKS=""
-PACKAGE_MANAGER=""
 SUDO_CMD=""
+
 
 # ===========================
 # Function: show_help
@@ -55,11 +57,12 @@ show_help() {
 Usage: $0 [options]
 
 Options:
-  -d <file>       Path to the dependencies TOML file (default: $DEPENDENCIES_FILE)
-  -m <manager>    Package manager to use (pacman, yay, apt, dnf, zypper)
-  -h, --help      Show this help message and exit
-  --only a,b,c     Install only specified blocks
-  --skip a,b,c     Skip specified blocks
+  -d <file>           Path to the dependencies TOML file (default: $DEPENDENCIES_FILE)
+  -l, --log <file>    Log file
+  -m <manager>        Package manager to use (pacman, yay, apt, dnf, zypper)
+  -h, --help          Show this help message and exit
+  --only a,b,c        Install only specified blocks
+  --skip a,b,c        Skip specified blocks
 
 Examples:
   $0 -d ./deps.toml
@@ -73,50 +76,51 @@ EOF
 # ===========================
 parse_args() {
   while [[ $# -gt 0 ]]; do
-    case $1 in
-    -d)
-      if [[ -n $2 && $2 != -* ]]; then
+    case "$1" in
+      -d|--deps)
         DEPENDENCIES_FILE="$2"
         shift 2
-      else
-        log_error "Option -d requires an argument."
-        show_help
-        exit 1
-      fi
-      ;;
-    -m)
-      if [[ -n $2 && $2 != -* ]]; then
+        ;;
+      -l|--log)
+        LOG_FILE="$2"
+        shift 2
+        ;;
+      -m)
         PACKAGE_MANAGER="$2"
         shift 2
-      else
-        log_error "Option -m requires an argument."
+        ;;
+      --only)
+        ONLY_BLOCKS="$2"
+        shift 2
+        ;;
+      --skip)
+        SKIP_BLOCKS="$2"
+        shift 2
+        ;;
+      -h|--help)
+        show_help
+        exit 0
+        ;;
+      *)
+        log_error "Unknown option: $1"
         show_help
         exit 1
-      fi
-      ;;
-    -h | --help)
-      show_help
-      exit 0
-      ;;
-    --only)
-      ONLY_BLOCKS="$2"
-      shift 2
-      ;;
-    --skip)
-      SKIP_BLOCKS="$2"
-      shift 2
-      ;;
-    *)
-      log_error "Unknown option: $1"
-      show_help
-      exit 1
-      ;;
+        ;;
     esac
   done
 
-  # Validate dependency file
-  if [ ! -f "$DEPENDENCIES_FILE" ]; then
-    log_error "Dependencies file not found: $DEPENDENCIES_FILE"
+  if [[ -z "$DEPENDENCIES_FILE" ]]; then
+    printf 'ERROR: Dependency file is required (-d | --deps\n' >&2
+    exit 1
+  fi
+
+  if [[ -z "$LOG_FILE" ]]; then
+    printf 'ERROR: log file must be specified (-l | --log)\n' >&2
+    exit 1
+  fi
+
+  if [[ ! -r "$DEPENDENCIES_FILE" ]]; then
+    printf 'ERROR: Dependencies file not readable: $DEPENDENCIES_FILE\n' >&2
     exit 1
   fi
 }
@@ -141,7 +145,7 @@ prepare_sudo() {
   if command -v sudo >/dev/null 2>&1; then
     SUDO_CMD="sudo"
   else
-    log_error "This operation requires root privileges, but sudo is not available."
+    log_error -v "This operation requires root privileges, but sudo is not available."
     exit 1
   fi
 }
@@ -165,11 +169,11 @@ detect_package_manager() {
     elif command -v zypper >/dev/null 2>&1; then
       PKG_MANAGER="zypper"
     else
-      log_error "No supported package manager found!"
+      log_error -v "No supported package manager found!"
       exit 1
     fi
   fi
-  log_info "Using package manager: $PKG_MANAGER"
+  log_info -v "Using package manager: $PKG_MANAGER"
 }
 
 # ===========================
@@ -183,7 +187,7 @@ install_block_packages() {
   local retry_failed=""
 
   for pkg in $packages; do
-    log_info "Installing $pkg ..."
+    log_info -v "Installing $pkg ..."
     case "$PKG_MANAGER" in
     pacman) $SUDO_CMD pacman -S --noconfirm --needed "$pkg" || failed_deps="$failed_deps $pkg" ;;
     apt) $SUDO_CMD apt-get install -y "$pkg" || failed_deps="$failed_deps $pkg" ;;
@@ -195,7 +199,7 @@ install_block_packages() {
 
   # Retry failed packages
   if [ -n "$failed_deps" ]; then
-    log_warn "Retrying failed packages: $failed_deps"
+    log_warn -v "Retrying failed packages: $failed_deps"
     for pkg in $failed_deps; do
       case "$PKG_MANAGER" in
       pacman) $SUDO_CMD pacman -S --noconfirm --needed "$pkg" || retry_failed="$retry_failed $pkg" ;;
@@ -208,12 +212,12 @@ install_block_packages() {
   fi
 
   if [ -n "$retry_failed" ]; then
-    log_error "These packages in block '$block' failed after retry: $retry_failed"
+    log_error -v "These packages in block '$block' failed after retry: $retry_failed"
 
     timestamp="[$(date '+%Y-%m-%d %H:%M:%S')]"
     printf "%s Block: %s -> %s\n" "$timestamp" "$block" "$retry_failed" >>missing_apps.txt
   else
-    log_ok "All packages in block '$block' installed successfully"
+    log_ok -v "All packages in block '$block' installed successfully"
   fi
 }
 
@@ -277,10 +281,10 @@ parse_toml_dependencies() {
         in_packages=0
 
         if [ "$enabled" = "true" ] && should_process_block "$current_block"; then
-          log_info "Installing block: $current_block"
+          log_info -v "Installing block: $current_block"
           install_block_packages "$current_block" "$packages"
         else
-          log_warn "Skipping block: $current_block"
+          log_warn -v "Skipping block: $current_block"
         fi
 
         packages=""
