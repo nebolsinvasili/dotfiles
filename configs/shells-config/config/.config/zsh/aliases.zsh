@@ -15,3 +15,5 @@ alias c='clear'
 alias q='exit'
 
 alias mkdircd='mkdircd() { mkdir -p "$1" && cd "$1"; } && mkdircd'
+
+alias zmk-studio='WEBKIT_DISABLE_COMPOSITING_MODE=1 GDK_BACKEND=x11 zmk-studio'

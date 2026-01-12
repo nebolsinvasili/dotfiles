@@ -67,10 +67,18 @@ main() {
     DEP="$SCRIPT_DIR/dependencies.toml"
     LOG="$SCRIPT_DIR/installer.log"
 
-    log_init "$LOG" && log_title "AUR installer started"
+    log_init "$LOG" && log_title "ZMK-Studio installer started"
 
-    install_dependencies -d "$DEP" -l "$LOG" -m pacman
-    stow_package -p "config" -t "$HOME" -d "./"
+    install_dependencies -d "$DEP" -l "$LOG" -m yay
+
+    sudo stow -R -v -t "/" "config"
+
+    sudo udevadm control --reload
+
+    sudo usermod -a -G storage $USER
+
+    sudo usermod -a -G uucp $USER
+
 }
 
 # ============================================================

@@ -1,0 +1,5 @@
+[base]
+packages = [ "git" ]
+
+[install-utils]
+packages = [ "stow" ]
