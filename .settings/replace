@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# Включает строгий режим:
+# -e: выход при ошибке любой команды
+# -u: ошибка при использовании необъявленных переменных
+# -o pipefail: ошибка в цепочке пайпов (pipe) считается ошибкой всей цепочки
+set -euo pipefail
+
+# Функция для замены ВСЕЙ строки, если она соответствует регулярному выражению
+replace_line_regex() {
+    local file backup=1 regex newline
+
+    # Вспомогательная функция для вывода справки
+    show_help() {
+        cat <<'EOF'
+Использование:
+  replace_line_regex [OPTIONS] REGEX NEW_LINE
+
+Опции:
+  -f, --file FILE     Целевой файл (обязательно)
+  -n, --no-backup     Не создавать резервную копию .bak
+  -h, --help          Показать справку
+
+Описание:
+  Заменяет ВСЮ строку целиком, если REGEX совпал с какой-либо её частью.
+  Используются расширенные регулярные выражения POSIX (ERE).
+EOF
+    }
+
+    # Парсинг аргументов функции
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -f|--file) file="$2"; shift 2 ;;
+            -n|--no-backup) backup=0; shift ;;
+            -h|--help) show_help; return 0 ;;
+            --) shift; break ;;
+            *) break ;;
+        esac
+    done
+
+    # Проверки входных данных
+    [ $# -eq 2 ] || { echo "ошибка: требуются REGEX и NEW_LINE" >&2; return 1; }
+    [ -n "${file:-}" ] || { echo "ошибка: параметр --file обязателен" >&2; return 2; }
+    [ -f "$file" ] || { echo "ошибка: файл не найден: $file" >&2; return 3; }
+
+    regex="$1"
+    newline="$2"
+
+    # Выполнение замены через sed (команда 'c' — change line)
+    if [ "$backup" -eq 1 ]; then
+        sed -E -i.bak "/$regex/c\\$newline" "$file"
+    else
+        sed -E -i "/$regex/c\\$newline" "$file"
+    fi
+}
+
+# Функция для поиска и замены текста внутри строк (классический find-and-replace)
+replace_regex() {
+    local file backup=1 regex replacement flags="g"
+
+    show_help() {
+        cat <<'EOF'
+Использование:
+  replace_regex [OPTIONS] REGEX REPLACEMENT
+
+Опции:
+  -f, --file FILE     Целевой файл (обязательно)
+  -n, --no-backup     Не создавать резервную копию .bak
+  -1                  Заменить только первое совпадение в строке (убирает флаг 'g')
+  -h, --help          Показать справку
+
+Описание:
+  Выполняет замену по регулярному выражению (POSIX ERE).
+  Поддерживает группы захвата (\1, \2, ...).
+EOF
+    }
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -f|--file) file="$2"; shift 2 ;;
+            -n|--no-backup) backup=0; shift ;;
+            -1) flags=""; shift ;; # Убирает глобальный флаг, заменяя только первое вхождение
+            -h|--help) show_help; return 0 ;;
+            --) shift; break ;;
+            *) break ;;
+        esac
+    done
+
+    [ $# -eq 2 ] || { echo "ошибка: требуются REGEX и REPLACEMENT" >&2; return 1; }
+    [ -n "${file:-}" ] || { echo "ошибка: параметр --file обязателен" >&2; return 2; }
+    [ -f "$file" ] || { echo "ошибка: файл не найден: $file" >&2; return 3; }
+
+    regex="$1"
+    replacement="$2"
+
+    # Выполнение замены через sed (команда 's' — substitute)
+    # Используется разделитель '|', чтобы было проще работать с путями (содержащими '/')
+    if [ "$backup" -eq 1 ]; then
+        sed -E -i.bak "s|$regex|$replacement|$flags" "$file"
+    else
+        sed -E -i "s|$regex|$replacement|$flags" "$file"
+    fi
+}
+

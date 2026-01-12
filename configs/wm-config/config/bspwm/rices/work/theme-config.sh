@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+#############################
+#		Emilia Theme		#
+#############################
+# Copyright (C) 2021-2025 gh0stzk <z0mbi3.zk@protonmail.com>
+# https://github.com/gh0stzk/dotfiles
+
+# ============================================================
+# General colorscheme
+# ============================================================
+
+bg="#1a1b26"
+fg="#c0caf5"
+
+black="#15161e"
+red="#f7768e"
+green="#9ece6a"
+yellow="#e0af68"
+blue="#7aa2f7"
+magenta="#bb9af7"
+cyan="#7dcfff"
+white="#a9b1d6"
+blackb="#414868"
+redb="#f7768e"
+greenb="#9ece6a"
+yellowb="#e0af68"
+blueb="#7aa2f7"
+magentab="#bb9af7"
+cyanb="#7dcfff"
+whiteb="#c0caf5"
+
+accent_color="#222330"
+arch_icon="#0f94d2"
+
+# ============================================================
+# Bspwm options
+# ============================================================
+
+BSPWM_WINDOW_GAP="24"
+
+BSPWM_TOP_PADDING="0"
+BSPWM_BOTTOM_PADDING="0"
+BSPWM_LEFT_PADDING="0"
+BSPWM_RIGHT_PADDING="0"
+
+BSPWM_BORDER_WIDTH="3"
+BSPWM_NORMAL_BORDER_COLOR="#202020"
+BSPWM_ACTIVE_BORDER_COLOR="#202020"
+BSPWM_FOCUSED_BORDER_COLOR="#222222"
+BSPWM_PRESEL_BORDER_COLOR="#202020"
+
+BSPWM_SPLIT_RATIO="0.50"
+
+BSPWM_AUTOMATIC_SCHEME="longest_side"
+BSPWM_INITIAL_POLARITY="second_child"
+
+
+# ============================================================
+# Picom options
+# ============================================================
+
+PICOM_SHADOW_SWITCH="true"
+PICOM_SHADOW_COLOR="$bg"
+
+PICOM_FADING_SWITCH="true"
+
+PICOM_ACTIVE_OPACITY="0.80"
+PICOM_INACTIVE_OPACITY="0.80"
+PICOM_FRAME_OPACITY="0.80"
+
+PICOM_CORNER_RADIUS="6"
+
+PICOM_BLUR_METHOD="dual_kawase"
+PICOM_BLUR_SIZE="10"
+PICOM_BLUR_DEVIATION="20"
+PICOM_BLUR_STRENGTH="7"
+
+PICOM_ANIMATIONS_SWITCH="@"
+
+
+# Terminal font & size
+term_font_size="10"
+term_font_name="JetBrainsMono Nerd Font"
+
+
+# Dunst
+dunst_offset='(20, 60)'
+dunst_origin='top-right'
+dunst_transparency='0'
+dunst_corner_radius='6'
+dunst_font='JetBrainsMono NF Medium 9'
+dunst_border='0'
+dunst_frame_color="$accent_color"
+dunst_icon_theme="TokyoNight-SE"
+# Dunst animations
+dunst_close_preset="fly-out"
+dunst_close_direction="up"
+dunst_open_preset="fly-in"
+dunst_open_direction="up"
+
+# Jgmenu colors
+jg_bg="$bg"
+jg_fg="$fg"
+jg_sel_bg="$accent_color"
+jg_sel_fg="$fg"
+jg_sep="$blackb"
+
+# Rofi menu font and colors
+rofi_font="JetBrainsMono NF Bold 9"
+rofi_background="$bg"
+rofi_bg_alt="$accent_color"
+rofi_background_alt="${bg}E0"
+rofi_fg="$fg"
+rofi_selected="$blue"
+rofi_active="$green"
+rofi_urgent="$red"
+
+# Screenlocker
+sl_bg="${bg}"
+sl_fg="${fg}"
+sl_ring="${black}"
+sl_wrong="${red}"
+sl_date="${fg}"
+sl_verify="${green}"
+
+# Gtk theme
+gtk_theme="TokyoNight-zk"
+gtk_icons="TokyoNight-SE"
+gtk_cursor="Qogirr-Dark"
+geany_theme="z0mbi3-TokyoNight"
+
+# Wallpaper engine
+# Available engines:
+# - Random  (Set a random wallpaper from Walls rice directory)
+# - CustomDir   (Set a random wallpaper from the directory you specified)
+# - Default (Sets a specific image as wallpaper) *Default
+# - Animated (Set an animated wallpaper. "mp4, mkv, gif")
+# - Slideshow (Change randomly every 15 minutes your wallpaper from Walls rice directory)
+ENGINE="Default"
+
+CUSTOM_DIR="/path/to/your/wallpapers/directory"
+DEFAULT_WALL="/home/nebolsinvasili/.config/bspwm/rices/work/wallpapers/lw5hznq0oaj91.png"
+ANIMATED_WALL="$HOME/.config/bspwm/config/assets/animated_wall.mp4"

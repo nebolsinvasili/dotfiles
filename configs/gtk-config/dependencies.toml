@@ -1,0 +1,17 @@
+[gtk]
+packages = [ "gtk", "gtk2", "gtk3", "gtk4" ]
+
+[fonts]
+packages = [ "nerd-fonts", "noto-fonts-emoji", "ttf-noto-emoji-monochrome" ]
+
+[themes]
+packages = [ "whitesur-gtk-theme" ]
+
+[icons]
+packages = [ "whitesur-icon-theme" ]
+
+[cursors]
+packages = [ "qogir-cursor-theme" ]
+
+[install-utils]
+packages = [ "stow" ]

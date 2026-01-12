@@ -27,284 +27,295 @@
 
 set -euo pipefail
 
-# Load logging module
+# ------------------------------------------------------------
+# Load modules
+# ------------------------------------------------------------
 LOGGING_MODULE="$DOTFILES/.settings/logging"
-if [[ -r "$LOGGING_MODULE" ]]; then
-    source "$LOGGING_MODULE"
-else
-    printf 'WARNING: logging module not found: %s\n' "$LOGGING_MODULE" >&2
-fi
+[[ -r "$LOGGING_MODULE" ]] && source "$LOGGING_MODULE" \
+    || printf 'WARNING: logging module not found: %s\n' "$LOGGING_MODULE" >&2
 
-# Absolute path of running script
+LINKED_MODULE="$DOTFILES/.settings/linked"
+[[ -r "$LINKED_MODULE" ]] && source "$LINKED_MODULE" \
+    || printf 'WARNING: linked module not found: %s\n' "$LINKED_MODULE" >&2
+
+GIT_MODULE="$DOTFILES/.settings/git-utils"
+[[ -r "$GIT_MODULE" ]] && source "$GIT_MODULE" \
+    || printf 'WARNING: git utils module not found: %s\n' "$GIT_MODULE" >&2
+
+REPLACE_MODULE="$DOTFILES/.settings/replace"
+[[ -r "$REPLACE_MODULE" ]] && source "$REPLACE_MODULE" \
+    || printf 'WARNING: replace module not found: %s\n' "$REPLACE_MODULE" >&2
+
+
+# ------------------------------------------------------------
+# Absolute script path
+# ------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Default values
-LOG_FILE=""
 DEPENDENCIES_FILE=""
+DEP_LOG_FILE=""
 PACKAGE_MANAGER="pacman"
-
 ONLY_BLOCKS=""
 SKIP_BLOCKS=""
 SUDO_CMD=""
 
-
-# ===========================
-# Function: show_help
-# Purpose : Display script usage instructions
-# ===========================
+# ============================================================
+# Show help
+# ============================================================
 show_help() {
-  cat <<EOF
+cat <<EOF
 Usage: $0 [options]
 
 Options:
-  -d <file>           Path to the dependencies TOML file (default: $DEPENDENCIES_FILE)
-  -l, --log <file>    Log file
-  -m <manager>        Package manager to use (pacman, yay, apt, dnf, zypper)
-  -h, --help          Show this help message and exit
+  -d <file>           Path to dependencies TOML file
+  -l <file>           Log file
+  -m <manager>        Package manager (pacman, yay, apt, dnf, zypper)
   --only a,b,c        Install only specified blocks
   --skip a,b,c        Skip specified blocks
-
-Examples:
-  $0 -d ./deps.toml
-  $0 -m yay
+  -h, --help          Show this help
 EOF
 }
 
-# ===========================
-# Function: parse_args
-# Purpose : Parse command line arguments for dependency file and package manager
-# ===========================
+# ============================================================
+# Parse CLI arguments
+# ============================================================
 parse_args() {
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      -d|--deps)
-        DEPENDENCIES_FILE="$2"
-        shift 2
-        ;;
-      -l|--log)
-        LOG_FILE="$2"
-        shift 2
-        ;;
-      -m)
-        PACKAGE_MANAGER="$2"
-        shift 2
-        ;;
-      --only)
-        ONLY_BLOCKS="$2"
-        shift 2
-        ;;
-      --skip)
-        SKIP_BLOCKS="$2"
-        shift 2
-        ;;
-      -h|--help)
-        show_help
-        exit 0
-        ;;
-      *)
-        log_error "Unknown option: $1"
-        show_help
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -d|--deps) DEPENDENCIES_FILE="$2"; shift 2 ;;
+            -l|--log) DEP_LOG_FILE="$2"; shift 2 ;;
+            -m) PACKAGE_MANAGER="$2"; shift 2 ;;
+            --only) ONLY_BLOCKS="$2"; shift 2 ;;
+            --skip) SKIP_BLOCKS="$2"; shift 2 ;;
+            -h|--help) show_help; exit 0 ;;
+            *) log_error "Unknown option $1"; show_help; exit 1 ;;
+        esac
+    done
+
+    if [[ -z "$DEPENDENCIES_FILE" || ! -r "$DEPENDENCIES_FILE" ]]; then
+        log_error "Dependencies file not readable: $DEPENDENCIES_FILE"
         exit 1
-        ;;
-    esac
-  done
+    fi
 
-  if [[ -z "$DEPENDENCIES_FILE" ]]; then
-    printf 'ERROR: Dependency file is required (-d | --deps\n' >&2
-    exit 1
-  fi
+    if [[ -z "$DEP_LOG_FILE" ]]; then
+        log_error "Log file must be specified (-l)"
+        exit 1
+    fi
 
-  if [[ -z "$LOG_FILE" ]]; then
-    printf 'ERROR: log file must be specified (-l | --log)\n' >&2
-    exit 1
-  fi
-
-  if [[ ! -r "$DEPENDENCIES_FILE" ]]; then
-    printf 'ERROR: Dependencies file not readable: $DEPENDENCIES_FILE\n' >&2
-    exit 1
-  fi
+    # Инициализация лог-файла
+    log_init "$DEP_LOG_FILE"
 }
 
 # ============================================================
-# Function: prepare_sudo
-# Purpose : Relaunch script via sudo if required
+# Detect package manager
+# ============================================================
+detect_package_manager() {
+    if [[ -n "$PACKAGE_MANAGER" ]]; then
+        PKG_MANAGER="$PACKAGE_MANAGER"
+    else
+        if command -v pacman >/dev/null 2>&1; then PKG_MANAGER="pacman"
+        elif command -v yay >/dev/null 2>&1; then PKG_MANAGER="yay"
+        elif command -v apt-get >/dev/null 2>&1; then PKG_MANAGER="apt"
+        elif command -v dnf >/dev/null 2>&1; then PKG_MANAGER="dnf"
+        elif command -v zypper >/dev/null 2>&1; then PKG_MANAGER="zypper"
+        else log_error "No supported package manager found!"; exit 1
+        fi
+    fi
+    log_info -v "Using package manager: $PKG_MANAGER"
+}
+
+# ============================================================
+# Prepare sudo
 # ============================================================
 prepare_sudo() {
-  # yay не требует root
-  if [ "$PKG_MANAGER" = "yay" ]; then
-    SUDO_CMD=""
-    return
-  fi
-
-  # Если уже root — sudo не нужен
-  if [ "$EUID" -eq 0 ]; then
-    SUDO_CMD=""
-    return
-  fi
-
-  if command -v sudo >/dev/null 2>&1; then
-    SUDO_CMD="sudo"
-  else
-    log_error -v "This operation requires root privileges, but sudo is not available."
-    exit 1
-  fi
-}
-
-# ===========================
-# Function: detect_package_manager
-# Purpose : Detects or validates package manager
-# ===========================
-detect_package_manager() {
-  if [ -n "$PACKAGE_MANAGER" ]; then
-    PKG_MANAGER="$PACKAGE_MANAGER"
-  else
-    if command -v pacman >/dev/null 2>&1; then
-      PKG_MANAGER="pacman"
-    elif command -v yay >/dev/null 2>&1; then
-      PKG_MANAGER="yay"
-    elif command -v apt-get >/dev/null 2>&1; then
-      PKG_MANAGER="apt"
-    elif command -v dnf >/dev/null 2>&1; then
-      PKG_MANAGER="dnf"
-    elif command -v zypper >/dev/null 2>&1; then
-      PKG_MANAGER="zypper"
+    if [ "$PKG_MANAGER" = "yay" ] || [ "$EUID" -eq 0 ]; then
+        SUDO_CMD=""
+    elif command -v sudo >/dev/null 2>&1; then
+        SUDO_CMD="sudo"
     else
-      log_error -v "No supported package manager found!"
-      exit 1
+        log_error "Root privileges required, but sudo not available"
+        exit 1
     fi
-  fi
-  log_info -v "Using package manager: $PKG_MANAGER"
 }
 
-# ===========================
-# Function: install_block_packages
-# Purpose : Install packages for a single block
-# ===========================
-install_block_packages() {
-  local block="$1"
-  local packages="$2"
-  local failed_deps=""
-  local retry_failed=""
-
-  for pkg in $packages; do
-    log_info -v "Installing $pkg ..."
+# ============================================================
+# Update package database
+# ============================================================
+update_package_db() {
+    log_title "Updating package database..."
     case "$PKG_MANAGER" in
-    pacman) $SUDO_CMD pacman -S --noconfirm --needed "$pkg" || failed_deps="$failed_deps $pkg" ;;
-    apt) $SUDO_CMD apt-get install -y "$pkg" || failed_deps="$failed_deps $pkg" ;;
-    dnf) $SUDO_CMD dnf install -y "$pkg" || failed_deps="$failed_deps $pkg" ;;
-    zypper) $SUDO_CMD zypper install -y "$pkg" || failed_deps="$failed_deps $pkg" ;;
-    yay) yay -S --noconfirm --needed "$pkg" || failed_deps="$failed_deps $pkg" ;;
+        pacman) $SUDO_CMD pacman -Sy --noconfirm ;;
+        yay) yay -Sy --noconfirm ;;
+        apt) $SUDO_CMD apt-get update -y ;;
+        dnf) $SUDO_CMD dnf check-update -y || true ;;
+        zypper) $SUDO_CMD zypper refresh ;;
+        *) log_warn -v "Unknown package manager, skipping update" ;;
     esac
-  done
-
-  # Retry failed packages
-  if [ -n "$failed_deps" ]; then
-    log_warn -v "Retrying failed packages: $failed_deps"
-    for pkg in $failed_deps; do
-      case "$PKG_MANAGER" in
-      pacman) $SUDO_CMD pacman -S --noconfirm --needed "$pkg" || retry_failed="$retry_failed $pkg" ;;
-      apt) $SUDO_CMD apt-get install -y "$pkg" || retry_failed="$retry_failed $pkg" ;;
-      dnf) $SUDO_CMD dnf install -y "$pkg" || retry_failed="$retry_failed $pkg" ;;
-      zypper) $SUDO_CMD zypper install -y "$pkg" || retry_failed="$retry_failed $pkg" ;;
-      yay) yay -S --noconfirm --needed "$pkg" || retry_failed="$retry_failed $pkg" ;;
-      esac
-    done
-  fi
-
-  if [ -n "$retry_failed" ]; then
-    log_error -v "These packages in block '$block' failed after retry: $retry_failed"
-
-    timestamp="[$(date '+%Y-%m-%d %H:%M:%S')]"
-    printf "%s Block: %s -> %s\n" "$timestamp" "$block" "$retry_failed" >>missing_apps.txt
-  else
-    log_ok -v "All packages in block '$block' installed successfully"
-  fi
+    log_ok -v "Package database updated"
 }
 
-# ===========================
-# TOML dependency parser
-# ===========================
-
+# ============================================================
+# Should process block
+# ============================================================
 should_process_block() {
-  block="$1"
-
-  # --only имеет приоритет
-  if [ -n "$ONLY_BLOCKS" ]; then
-      echo "$ONLY_BLOCKS" | tr ',' '\n' | grep -qx "$block" || return 1
-  fi
-
-  # --skip
-  if [ -n "$SKIP_BLOCKS" ]; then
-      echo "$SKIP_BLOCKS" | tr ',' '\n' | grep -qx "$block" && return 1
-  fi
-
-  return 0
+    local block="$1"
+    if [[ -n "$ONLY_BLOCKS" ]]; then
+        echo "$ONLY_BLOCKS" | tr ',' '\n' | grep -qx "$block" || return 1
+    fi
+    if [[ -n "$SKIP_BLOCKS" ]]; then
+        echo "$SKIP_BLOCKS" | tr ',' '\n' | grep -qx "$block" && return 1
+    fi
+    return 0
 }
+
+# ============================================================
+# Install packages for a block
+# ============================================================
+install_block_packages() {
+    local block="$1"
+    local packages="$2"
+    local failed=""
+    local retry=""
+
+    for pkg in $packages; do
+        log_info -v "Installing $pkg ..."
+        case "$PKG_MANAGER" in
+            pacman) $SUDO_CMD pacman -S --noconfirm --needed "$pkg" || failed="$failed $pkg" ;;
+            apt) $SUDO_CMD apt-get install -y "$pkg" || failed="$failed $pkg" ;;
+            dnf) $SUDO_CMD dnf install -y "$pkg" || failed="$failed $pkg" ;;
+            zypper) $SUDO_CMD zypper install -y "$pkg" || failed="$failed $pkg" ;;
+            yay) yay -S --noconfirm --needed "$pkg" || failed="$failed $pkg" ;;
+        esac
+    done
+
+    if [[ -n "$failed" ]]; then
+        log_warn -v "Retrying failed packages:$failed"
+        for pkg in $failed; do
+            case "$PKG_MANAGER" in
+                pacman) $SUDO_CMD pacman -S --noconfirm --needed "$pkg" || retry="$retry $pkg" ;;
+                apt) $SUDO_CMD apt-get install -y "$pkg" || retry="$retry $pkg" ;;
+                dnf) $SUDO_CMD dnf install -y "$pkg" || retry="$retry $pkg" ;;
+                zypper) $SUDO_CMD zypper install -y "$pkg" || retry="$retry $pkg" ;;
+                yay) yay -S --noconfirm --needed "$pkg" || retry="$retry $pkg" ;;
+            esac
+        done
+    fi
+
+    if [[ -n "$retry" ]]; then
+        log_error -v "These packages failed after retry: $retry"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Block: $block -> $retry" >> missing_apps.txt
+    else
+        log_ok -v "All packages in block '$block' installed successfully"
+    fi
+}
+
+# ============================================================
+# Parse TOML dependencies (inline + multiline + nested tables)
+# ============================================================
 
 parse_toml_dependencies() {
-  local current_block=""
-  local enabled="true"
-  local in_packages=0
-  local packages=""
+    local current_block=""
+    local enabled="true"
+    local packages=""
+    local in_array=0
 
-  while IFS= read -r line || [ -n "$line" ]; do
-    # Удаляем комментарии
-    line="${line%%#*}"
-    line="$(echo "$line" | sed 's/[[:space:]]*$//')"
+    while IFS= read -r line || [ -n "$line" ]; do
+        # 1. Удаляем комментарии после #
+        line="${line%%#*}"
 
-    # Пусто
-    [ -z "$line" ] && continue
+        # 2. Убираем пробелы в начале и конце
+        line="${line#"${line%%[![:space:]]*}"}"
+        line="${line%"${line##*[![:space:]]}"}"
 
-    # Новый блок
-    if [[ "$line" =~ ^\[(.*)\]$ ]]; then
-      current_block="${BASH_REMATCH[1]}"
-      enabled="true"
-      continue
-    fi
+        # Пропускаем пустые строки
+        [ -z "$line" ] && continue
 
-    # enabled = false
-    if [[ "$line" =~ enabled[[:space:]]*=[[:space:]]*(true|false) ]]; then
-      enabled="${BASH_REMATCH[1]}"
-      continue
-    fi
-
-    # Начало packages
-    if [[ "$line" =~ packages[[:space:]]*=[[:space:]]*\[ ]]; then
-      in_packages=1
-      packages=""
-      continue
-    fi
-
-    # Читаем массив
-    if [ "$in_packages" -eq 1 ]; then
-      if [[ "$line" =~ \] ]]; then
-        in_packages=0
-
-        if [ "$enabled" = "true" ] && should_process_block "$current_block"; then
-          log_info -v "Installing block: $current_block"
-          install_block_packages "$current_block" "$packages"
-        else
-          log_warn -v "Skipping block: $current_block"
+        # 3. Новый блок [block] или [parent.child]
+        if [[ "$line" =~ ^\[([a-zA-Z0-9_.-]+)\]$ ]]; then
+            current_block="${BASH_REMATCH[1]}"
+            enabled="true"
+            packages=""
+            in_array=0
+            continue
         fi
 
-        packages=""
-        continue
-      fi
+        # 4. enabled = true/false
+        if [[ "$line" =~ ^enabled[[:space:]]*=[[:space:]]*(true|false) ]]; then
+            enabled="${BASH_REMATCH[1]}"
+            continue
+        fi
 
-      pkg="$(echo "$line" | tr -d '",[:space:]')"
-      [ -n "$pkg" ] && packages="$packages $pkg"
-    fi
-  done < "$DEPENDENCIES_FILE"
+        # 5. Inline массив на одной строке [ ... ]
+        if [[ "$line" =~ ^packages[[:space:]]*=[[:space:]]*\[.*\] ]]; then
+            # Извлекаем содержимое между [ и ]
+            local items="${line#*\[}"
+            items="${items%\]*}"
+            packages=""
+            # Разделяем по запятым
+            IFS=',' read -ra arr <<< "$items"
+            for pkg in "${arr[@]}"; do
+                pkg="$(echo "$pkg" | sed 's/^ *//;s/ *$//;s/^"\(.*\)"$/\1/')"
+                [ -n "$pkg" ] && packages="$packages $pkg"
+            done
+
+            # Устанавливаем блок, если включен
+            if [[ "$enabled" = "true" && $(should_process_block "$current_block"; echo $?) -eq 0 ]]; then
+                install_block_packages "$current_block" "$packages"
+            else
+                log_warn -v "Skipping block: $current_block"
+            fi
+            packages=""
+            continue
+        fi
+
+        # 6. Начало многострочного массива
+        if [[ "$line" =~ ^packages[[:space:]]*=[[:space:]]*\[ ]]; then
+            in_array=1
+            packages=""
+            continue
+        fi
+
+        # 7. Чтение многострочного массива
+        if [[ "$in_array" -eq 1 ]]; then
+            # Проверка закрывающей скобки
+            if [[ "$line" =~ \] ]]; then
+                in_array=0
+                line="${line%\]*}"  # удаляем ]
+            fi
+
+            # Убираем комментарии
+            line="${line%%#*}"
+
+            # Разделяем по запятой
+            IFS=',' read -ra arr <<< "$line"
+            for pkg in "${arr[@]}"; do
+                pkg="$(echo "$pkg" | sed 's/^ *//;s/ *$//;s/^"\(.*\)"$/\1/')"
+                [ -n "$pkg" ] && packages="$packages $pkg"
+            done
+
+            # Если массив закончился
+            if [[ "$in_array" -eq 0 ]]; then
+                if [[ "$enabled" = "true" && $(should_process_block "$current_block"; echo $?) -eq 0 ]]; then
+                    install_block_packages "$current_block" "$packages"
+                else
+                    log_warn -v "Skipping block: $current_block"
+                fi
+                packages=""
+            fi
+        fi
+    done < "$DEPENDENCIES_FILE"
 }
 
-# ===========================
-# MAIN FUNCTION
-# ===========================
+
+# ============================================================
+# Main entry
+# ============================================================
 install_dependencies() {
-  clear
-  log_title "Installing dependencies from TOML file..."
-  parse_args "$@"
-  detect_package_manager
-  prepare_sudo "$@"
-  parse_toml_dependencies
+    log_title "Installing dependencies from TOML file..."
+    parse_args "$@"
+    detect_package_manager
+    prepare_sudo
+    update_package_db
+    parse_toml_dependencies
 }

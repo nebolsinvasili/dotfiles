@@ -1,0 +1,5 @@
+[base]
+packages = [ "mpd","pulseaudio" ]
+
+[install-utils]
+packages = [ "stow" ]

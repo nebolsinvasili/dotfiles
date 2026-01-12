@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # ============================================================
 #
 # ██╗      ██████╗  ██████╗  ██████╗ ███████╗██████╗
@@ -25,219 +25,136 @@
 #
 # ============================================================
 
-# Checking if there is a terminal with colors
+# ------------------------------------------------------------
+# Цвета и стили ANSI через tput
+# ------------------------------------------------------------
 if command -v tput >/dev/null 2>&1 && [ "$(tput colors)" -ge 8 ]; then
-  # ANSI via tput
-  C_RED="$(tput setaf 1)"
-  C_GREEN="$(tput setaf 2)"
-  C_YELLOW="$(tput setaf 3)"
-  C_BLUE="$(tput setaf 4)"
-  C_MAGENTA="$(tput setaf 5)"
-  C_CYAN="$(tput setaf 6)"
-  C_WHITE="$(tput setaf 7)"
-
-  C_BOLD="$(tput bold)"
-  C_DIM="$(tput dim)"
-  C_RESET="$(tput sgr0)"
+    C_RED="$(tput setaf 1)"
+    C_GREEN="$(tput setaf 2)"
+    C_YELLOW="$(tput setaf 3)"
+    C_BLUE="$(tput setaf 4)"
+    C_MAGENTA="$(tput setaf 5)"
+    C_CYAN="$(tput setaf 6)"
+    C_WHITE="$(tput setaf 7)"
+    C_BOLD="$(tput bold)"
+    C_RESET="$(tput sgr0)"
 else
-  # Fallback
-  C_RED=""
-  C_GREEN=""
-  C_YELLOW=""
-  C_BLUE=""
-  C_MAGENTA=""
-  C_CYAN=""
-  C_WHITE=""
-
-  C_BOLD=""
-  C_DIM=""
-  C_RESET=""
+    C_RED=""
+    C_GREEN=""
+    C_YELLOW=""
+    C_BLUE=""
+    C_MAGENTA=""
+    C_CYAN=""
+    C_WHITE=""
+    C_BOLD=""
+    C_RESET=""
 fi
 
-# =========================================================
-# Semantic aliases
-# =========================================================
-
+# ------------------------------------------------------------
+# Цветовые алиасы
+# ------------------------------------------------------------
 CLR_ERROR="${C_BOLD}${C_RED}"
 CLR_WARN="${C_BOLD}${C_YELLOW}"
 CLR_INFO="${C_CYAN}"
 CLR_OK="${C_BOLD}${C_GREEN}"
 CLR_TITLE="${C_BOLD}${C_MAGENTA}"
-CLR_PATH="${C_BLUE}"
 CLR_RESET="${C_RESET}"
 
-# ============================================================
-# Icon configuration
-# ============================================================
-#
-# This section defines a unified logging format with icons.
-# Icons are selected based on terminal capabilities.
-# If Unicode icons are not supported, ASCII fallbacks are used.
-#
-# Output format:
-#   <COLOR><ICON><SPACE><MESSAGE><RESET>
-#
-# ============================================================
-
 # ------------------------------------------------------------
-# Detect Unicode / icon support
+# Иконки консоль / файл
 # ------------------------------------------------------------
-#
-# Icons may not render correctly in:
-#   - dumb terminals
-#   - minimal TTY environments
-#   - some CI systems
-#
-# This check is intentionally conservative.
-#
+ICONS_ENABLED=1
+[ "${TERM:-}" = "dumb" ] && ICONS_ENABLED=0
 
-if [ "${TERM:-}" = "dumb" ]; then
-  ICONS_ENABLED=0
-else
-  ICONS_ENABLED=1
-fi
-
-# Консольные иконки
 if [ "$ICONS_ENABLED" -eq 1 ]; then
-  ICON_CONS_INFO="ℹ"
-  ICON_CONS_OK="✔"
-  ICON_CONS_WARN="⚠"
-  ICON_CONS_ERROR="✖"
+    ICON_CONS_INFO="ℹ"
+    ICON_CONS_OK="✔"
+    ICON_CONS_WARN="⚠"
+    ICON_CONS_ERROR="✖"
 else
-  ICON_CONS_INFO="[i]"
-  ICON_CONS_OK="[+]"
-  ICON_CONS_WARN="[!]"
-  ICON_CONS_ERROR="[x]"
+    ICON_CONS_INFO="[i]"
+    ICON_CONS_OK="[+]"
+    ICON_CONS_WARN="[!]"
+    ICON_CONS_ERROR="[x]"
 fi
 
-# Текстовые иконки для лог-файла
 ICON_FILE_INFO="[INFO]"
 ICON_FILE_OK="[OK]"
 ICON_FILE_WARN="[WARN]"
 ICON_FILE_ERROR="[ERROR]"
 
-[[ -n "${LOGGING_SH_LOADED:-}" ]] && return
-readonly LOGGING_SH_LOADED=1
-
 # ------------------------------------------------------------
-# Init logging file
+# Инициализация лог-файла
 # ------------------------------------------------------------
-#
-# Arguments:
-#   $1 - log file path
-#
-
+# Аргумент: $1 - путь к файлу лога
 log_init() {
-    if [[ $# -ne 1 ]]; then
-        printf 'ERROR: log_init requires exactly one argument (log file path)\n' >&2
-        return 1
+    if [ -n "${LOG_INITIALIZED:-}" ]; then
+        return
+    fi
+
+    if [ $# -ne 1 ]; then
+        printf 'FATAL: log_init requires log file path\n' >&2
+        exit 1
     fi
 
     local log_path="$1"
-    local log_dir
-
-    # Приведение к абсолютному пути
     log_path="$(cd "$(dirname "$log_path")" && pwd)/$(basename "$log_path")"
-    log_dir="$(dirname "$log_path")"
+    mkdir -p "$(dirname "$log_path")" || {
+        printf 'FATAL: cannot create log directory\n' >&2
+        exit 1
+    }
 
-    mkdir -p "$log_dir" || return 1
+    [ -f "$log_path" ] && mv -f "$log_path" "$log_path.old"
+    touch "$log_path" || {
+        printf 'FATAL: cannot create log file: %s\n' "$log_path" >&2
+        exit 1
+    }
 
-    if [[ -f "$log_path" ]]; then
-        mv -f "$log_path" "$log_path.old"
+    LOG_FILE="$log_path"
+    readonly LOG_FILE
+    readonly LOG_INITIALIZED=1
+}
+
+# ------------------------------------------------------------
+# Внутренняя функция логирования
+# ------------------------------------------------------------
+# Аргументы:
+#   $1 - цвет консоли
+#   $2 - иконка консоли
+#   $3 - иконка файла
+#   $4..$n - сообщение
+_log() {
+    local color="$1"
+    local icon_console="$2"
+    local icon_file="$3"
+    shift 3
+    local msg="$*"
+    local verbose="${VERBOSE_OVERRIDE:-0}"
+
+    # Консоль (только verbose=1)
+    if [ "$verbose" -eq 1 ]; then
+        printf "%b%s %s%b\n" "$color" "$icon_console" "$msg" "$CLR_RESET"
     fi
 
-    touch "$log_path" || return 1
-
-    # Экспортируем как глобальный контракт
-    LOG_FILE="$log_path"
+    # Файл
+    if [ -n "${LOG_FILE:-}" ]; then
+        local timestamp
+        timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
+        echo "[$timestamp] $icon_file $msg" >>"$LOG_FILE"
+    fi
 }
 
 # ------------------------------------------------------------
-# Unified logging function
+# Универсальные функции логирования
 # ------------------------------------------------------------
-#
-# Arguments:
-#   $1 - color prefix
-#   $2 - icon
-#   $3 - message
-#
+log_error() { VERBOSE_OVERRIDE=0; case "$1" in -v|--verbose) VERBOSE_OVERRIDE=1; shift;; esac; _log "$CLR_ERROR" "$ICON_CONS_ERROR" "$ICON_FILE_ERROR" "$*"; }
+log_warn()  { VERBOSE_OVERRIDE=0; case "$1" in -v|--verbose) VERBOSE_OVERRIDE=1; shift;; esac; _log "$CLR_WARN"  "$ICON_CONS_WARN"  "$ICON_FILE_WARN"  "$*"; }
+log_info()  { VERBOSE_OVERRIDE=0; case "$1" in -v|--verbose) VERBOSE_OVERRIDE=1; shift;; esac; _log "$CLR_INFO"  "$ICON_CONS_INFO"  "$ICON_FILE_INFO"  "$*"; }
+log_ok()    { VERBOSE_OVERRIDE=0; case "$1" in -v|--verbose) VERBOSE_OVERRIDE=1; shift;; esac; _log "$CLR_OK"    "$ICON_CONS_OK"    "$ICON_FILE_OK"    "$*"; }
 
-_log() {
-  local color="$1"
-  local icon_console="$2"
-  local icon_file="$3"
-  shift 3
-
-  local verbose="${VERBOSE_OVERRIDE:-0}"
-
-  # Формируем текст
-  local text
-  text=$(printf "%s\n" "$*" | sed 's/^[[:space:]]*//; s/\n[[:space:]]*/\n/g')
-
-  # ---- вывод в консоль (только при verbose=1) ----
-  if [ "$verbose" -eq 1 ]; then
-    printf "%b%s %b%s\n" "$color" "$icon_console" "$text" "$CLR_RESET"
-  fi
-
-  # ---- вывод в файл ----
-  if [ -n "${LOG_FILE:-}" ]; then
-    local timestamp
-    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    echo "[$timestamp] $icon_file $text" >>"$LOG_FILE"
-  fi
-}
-
-# --------------------------
-# log_error с -v/--verbose
-# --------------------------
-log_error() {
-  local verbose=0
-  case "$1" in
-  -v | --verbose)
-    verbose=1
-    shift
-    ;;
-  esac
-  VERBOSE_OVERRIDE=$verbose _log "$CLR_ERROR" "$ICON_CONS_ERROR" "$ICON_FILE_ERROR" "$*"
-}
-
-log_warn() {
-  local verbose=0
-  case "$1" in
-  -v | --verbose)
-    verbose=1
-    shift
-    ;;
-  esac
-  VERBOSE_OVERRIDE=$verbose _log "$CLR_WARN" "$ICON_CONS_WARN" "$ICON_FILE_WARN" "$*"
-}
-
-log_ok() {
-  local verbose=0
-  case "$1" in
-  -v | --verbose)
-    verbose=1
-    shift
-    ;;
-  esac
-  VERBOSE_OVERRIDE=$verbose _log "$CLR_OK" "$ICON_CONS_OK" "$ICON_FILE_OK" "$*"
-}
-
-log_info() {
-  local verbose=0
-  case "$1" in
-  -v | --verbose)
-    verbose=1
-    shift
-    ;;
-  esac
-  VERBOSE_OVERRIDE=$verbose _log "$CLR_INFO" "$ICON_CONS_INFO" "$ICON_FILE_INFO" "$*"
-}
-
-# ============================================================
-# Entry point
-# ============================================================
-
+# ------------------------------------------------------------
+# Заголовки
+# ------------------------------------------------------------
 log_title() {
-  printf "%b%s%b\n" "$CLR_TITLE" "$*" "$CLR_RESET"
+    printf "%b%s%b\n" "$CLR_TITLE" "$*" "$CLR_RESET"
 }

@@ -1,0 +1,166 @@
+#!/usr/bin/env bash
+# ============================================================
+#
+# ██╗   ██╗ █████╗ ██╗   ██╗                                            
+# ╚██╗ ██╔╝██╔══██╗╚██╗ ██╔╝                                            
+#  ╚████╔╝ ███████║ ╚████╔╝                                             
+#   ╚██╔╝  ██╔══██║  ╚██╔╝                                              
+#    ██║   ██║  ██║   ██║                                               
+#    ╚═╝   ╚═╝  ╚═╝   ╚═╝                                               
+# ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗     ███████╗██████╗ 
+# ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║     ██╔════╝██╔══██╗
+# ██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║     █████╗  ██████╔╝
+# ██║██║╚██╗██║╚════██║   ██║   ██╔══██║██║     ██║     ██╔══╝  ██╔══██╗
+# ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗███████╗██║  ██║
+# ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝#
+#
+#  Project  : YAY Installer
+#  Purpose  : Install package manager.
+#  Author   : nebolsinvasili
+#  Repo     : https://github.com/nebolsinvasili/dotfiles.git
+#
+#  License  : GPL-3.0
+#  Created  : 2021
+#  Updated  : 2025-03-24
+#
+# ============================================================
+
+set -euo pipefail
+
+
+# ------------------------------------------------------------
+# Load modules
+# ------------------------------------------------------------
+LOGGING_MODULE="$DOTFILES/.settings/logging"
+[[ -r "$LOGGING_MODULE" ]] && source "$LOGGING_MODULE" \
+    || printf 'WARNING: logging module not found: %s\n' "$LOGGING_MODULE" >&2
+
+# ------------------------------------------------------------
+# Default values
+# ------------------------------------------------------------
+GIT_CLONE_DEFAULT_DEPTH=1
+GIT_CLONE_RETRIES=3
+GIT_CLONE_QUIET=false
+
+# ------------------------------------------------------------
+# Help clone
+# ------------------------------------------------------------
+git_clone_help() {
+    cat <<'EOF'
+Usage:
+  git_clone [OPTIONS] <repo_url> <target_dir>
+
+Description:
+  Idempotent git clone or fast-forward update utility.
+  Safe for dotfiles, CI, bootstrap, and NixOS workflows.
+
+Options:
+  -b, --branch <name>     Checkout specific branch
+  -t, --tag <name>        Checkout specific tag
+  -c, --commit <hash>     Checkout specific commit (detached HEAD)
+  -d, --depth <n>         Clone depth (default: 1)
+  -r, --retries <n>       Retry attempts on failure (default: 3)
+  -q, --quiet             Suppress git output
+  -h, --help              Show this help and exit
+
+Examples:
+  git_clone https://github.com/neovim/neovim.git ~/.src/neovim
+  git_clone -b develop https://github.com/user/repo.git ./repo
+  git_clone -t v1.2.3 https://github.com/user/repo.git ./repo
+  git_clone -c a1b2c3d https://github.com/user/repo.git ./repo
+EOF
+}
+
+# ------------------------------------------------------------
+# git_clone implementation
+# ------------------------------------------------------------
+git_clone() {
+    local repo_url target_dir
+    local branch="" tag="" commit=""
+    local depth="$GIT_CLONE_DEFAULT_DEPTH"
+    local retries="$GIT_CLONE_RETRIES"
+    local quiet="$GIT_CLONE_QUIET"
+
+    # ------------------------
+    # Parse arguments
+    # ------------------------
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -b|--branch) branch="$2"; shift 2 ;;
+            -t|--tag)    tag="$2"; shift 2 ;;
+            -c|--commit) commit="$2"; shift 2 ;;
+            -d|--depth)  depth="$2"; shift 2 ;;
+            -r|--retries)retries="$2"; shift 2 ;;
+            -q|--quiet)  quiet=true; shift ;;
+            -h|--help)   git_clone_help; return 0 ;;
+            --) shift; break ;;
+            -*)
+                log_error -v "Unknown option: $1"
+                return 2
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+
+    repo_url="${1:?Repository URL is required}"
+    target_dir="${2:?Target directory is required}"
+
+    # ------------------------
+    # Validation
+    # ------------------------
+    if ! command -v git >/dev/null 2>&1; then
+        log_error -v "git is not installed."
+        return 1
+    fi
+
+    if [[ -n "$branch" && -n "$tag" ]] || [[ -n "$branch" && -n "$commit" ]] || [[ -n "$tag" && -n "$commit" ]]; then
+        log_error -v "Only one of --branch, --tag, or --commit may be specified."
+        return 2
+    fi
+
+    # ------------------------
+    # Git flags
+    # ------------------------
+    local git_flags=()
+    [[ "$quiet" == true ]] && git_flags+=(--quiet)
+
+    # ------------------------
+    # Retry loop
+    # ------------------------
+    local attempt=1
+    while (( attempt <= retries )); do
+        if [[ -d "$target_dir/.git" ]]; then
+            log_info -v "Updating repository: $target_dir"
+            git -C "$target_dir" pull --ff-only "${git_flags[@]}"
+        else
+            if [[ -e "$target_dir" ]]; then
+                log_warn -v "Removing non-git path: $target_dir"
+                rm -rf "$target_dir"
+            fi
+
+            log_info -v "Cloning repository: $repo_url"
+            git clone --depth="$depth" "${git_flags[@]}" "$repo_url" "$target_dir"
+        fi
+
+        cd "$target_dir"
+
+        if [[ -n "$branch" ]]; then
+            git checkout "$branch" "${git_flags[@]}"
+        elif [[ -n "$tag" ]]; then
+            git checkout "tags/$tag" "${git_flags[@]}"
+        elif [[ -n "$commit" ]]; then
+            git checkout "$commit" "${git_flags[@]}"
+        fi
+
+        log_ok -v "Repository ready: $target_dir"
+        return 0
+
+        attempt=$((attempt + 1))
+        log_warn -v "Retrying ($attempt/$retries)..."
+    done
+
+    log_error -v "Failed after $retries attempts."
+    return 1
+}

@@ -8,10 +8,7 @@ packages = [
 ]
 
 [bspwm]
-packages = [
-"bspwm", 
-"sxhkd"
-]
+packages = [ "bspwm", "sxhkd" ]
 
 [ui]
 packages = [
@@ -31,6 +28,4 @@ packages = [
 ]
 
 [install-utils]
-packages = [
-"stow"
-]
+packages = [ "stow" ]

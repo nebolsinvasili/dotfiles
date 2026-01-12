@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 # ============================================================
 #
-# ██╗   ██╗ █████╗ ██╗   ██╗
-# ╚██╗ ██╔╝██╔══██╗╚██╗ ██╔╝
-#  ╚████╔╝ ███████║ ╚████╔╝
-#   ╚██╔╝  ██╔══██║  ╚██╔╝
-#    ██║   ██║  ██║   ██║
-#    ╚═╝   ╚═╝  ╚═╝   ╚═╝
-# ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗     ███████╗██████╗
+# ███████╗██╗  ██╗███████╗██╗     ██╗     
+# ██╔════╝██║  ██║██╔════╝██║     ██║     
+# ███████╗███████║█████╗  ██║     ██║     
+# ╚════██║██╔══██║██╔══╝  ██║     ██║     
+# ███████║██║  ██║███████╗███████╗███████╗
+# ╚══════╝╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝
+# ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗     ███████╗██████╗ 
 # ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║     ██╔════╝██╔══██╗
 # ██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║     █████╗  ██████╔╝
 # ██║██║╚██╗██║╚════██║   ██║   ██╔══██║██║     ██║     ██╔══╝  ██╔══██╗
 # ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗███████╗██║  ██║
-# ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝#
+# ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝
 #
-#  Project  : YAY Installer
-#  Purpose  : Install package manager.
+#  Project  : Shell Installer
+#  Purpose  : Install shell.
 #  Author   : nebolsinvasili
 #  Repo     : https://github.com/nebolsinvasili/dotfiles.git
 #
@@ -25,33 +25,52 @@
 #
 # ============================================================
 
-DOTFILES_DIR="/home/nebolsinvasili/dotfiles"
 
-# Load logging functions
-LOGGING_DIR="$DOTFILES_DIR/.settings/logging"
-if [ -f "$LOGGING_DIR" ]; then
-  . "$LOGGING_DIR"
-else
-  echo "WARNING: Logging file not found: $LOGGING_DIR"
-  exit 1
-fi
+set -euo pipefail
 
-# Absolute path of running script
-SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+# ------------------------------------------------------------
+# Load modules
+# ------------------------------------------------------------
+LOGGING_MODULE="$DOTFILES/.settings/logging"
+[[ -r "$LOGGING_MODULE" ]] && source "$LOGGING_MODULE" \
+    || printf 'WARNING: logging module not found: %s\n' "$LOGGING_MODULE" >&2
 
+LINKED_MODULE="$DOTFILES/.settings/linked"
+[[ -r "$LINKED_MODULE" ]] && source "$LINKED_MODULE" \
+    || printf 'WARNING: linked module not found: %s\n' "$LINKED_MODULE" >&2
+
+GIT_MODULE="$DOTFILES/.settings/git-utils"
+[[ -r "$GIT_MODULE" ]] && source "$GIT_MODULE" \
+    || printf 'WARNING: git utils module not found: %s\n' "$GIT_MODULE" >&2
+
+REPLACE_MODULE="$DOTFILES/.settings/replace"
+[[ -r "$REPLACE_MODULE" ]] && source "$REPLACE_MODULE" \
+    || printf 'WARNING: replace module not found: %s\n' "$REPLACE_MODULE" >&2
+
+DepInst_MODULE="$DOTFILES/.settings/DependenciesInstaller"
+[[ -r "$DepInst_MODULE" ]] && source "$DepInst_MODULE" \
+    || printf 'WARNING: dependencies module not found: %s\n' "$DepInst_MODULE" >&2
+
+
+# ------------------------------------------------------------
 # Default values
-DEPENDENCIES_FILE="$SCRIPT_DIR/dependencies.toml"
-PACKAGE_MANAGER="pacman"
+# ------------------------------------------------------------
 
+
+
+# ============================================================
+# Select user
+# Populates associative array passed as argument: key_info[type], key_info[bits]
+# ============================================================
 function choose_user() {
-  log_info "👤 Выберите пользователя для настройки:"
+  log_info -v "👤 Выберите пользователя для настройки:"
   mapfile -t users < <(ls /home)
 
   for i in "${!users[@]}"; do
-    echo -e "  ${YELLOW}$((i + 1)))${RESET} ${users[$i]}"
+    echo -e "  ${C_YELLOW}$((i + 1)))${C_RESET} ${users[$i]}"
   done
 
-  echo -e "  ${YELLOW}0)${RESET} root"
+  echo -e "  ${C_YELLOW}0)${C_RESET} root"
 
   read -rp "Введите номер пользователя [1]: " choice
   choice=${choice:-1}
@@ -63,7 +82,7 @@ function choose_user() {
     TARGET_USER="${users[$((choice - 1))]}"
     TARGET_HOME="/home/$TARGET_USER"
   else
-    log_error "Недопустимый выбор"
+    log_error -v "Недопустимый выбор"
     exit 1
   fi
 
@@ -75,66 +94,49 @@ function choose_shell() {
   mapfile -t shells < <(grep '^/' /etc/shells)
 
   for i in "${!shells[@]}"; do
-    echo -e "  ${YELLOW}$((i + 1)))${RESET} ${shells[$i]}"
+    echo -e "  ${C_YELLOW}$((i + 1)))${C_RESET} ${shells[$i]}"
   done
 
   read -rp "Выберите номер shell [1]: " choice
   choice=${choice:-1}
 
   if [[ $choice -lt 1 || $choice -gt ${#shells[@]} ]]; then
-    log_error "Недопустимый выбор"
+    log_error -v "Недопустимый выбор"
     exit 1
   fi
 
   NEWSHELL="${shells[$((choice - 1))]}"
-  log_info "Меняем shell на: $(basename "$NEWSHELL")"
+  log_info -v "Меняем shell на: $(basename "$NEWSHELL")"
 
   # Меняем shell указанному пользователю
   sudo chsh -s "$NEWSHELL" "$TARGET_USER"
 
-  log_ok "Shell изменён для пользователя ${TARGET_USER}"
+  log_ok -v "Shell изменён для пользователя ${TARGET_USER}"
 }
 
-# ⚙️ Stow конфиги
-function stow_configs() {
-  if [[ -d "$SCRIPT_DIR/config" ]]; then
-    log_info "Применяем конфигурацию через stow"
-    sudo -u "$TARGET_USER" bash -c "cd '$SCRIPT_DIR'\
-          && stow -R -v -t '$TARGET_HOME' config"
-    log_ok "Конфигурация применена пользователю ${TARGET_USER}"
-  else
-    log_error "'$SCRIPT_DIR/config' не найдена, пропускаем"
-  fi
+
+# ============================================================
+# Main entry (CLI)
+# ============================================================
+main() {
+    # Absolute path of running script
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    DEP="$SCRIPT_DIR/dependencies.toml"
+    LOG="$SCRIPT_DIR/installer.log"
+
+    log_init "$LOG" && log_title "Shell installer started"
+
+    install_dependencies -d "$DEP" -l "$LOG" -m yay
+
+    choose_user
+    choose_shell
+
+    stow_package -t "$TARGET_HOME" -d "$SCRIPT_DIR/" -p "config"
 }
 
-change_default_shell() {
-  clear
-  log_title "Changing default shell to zsh"
-  zsh_path=$(command -v zsh)
-  sleep 2
-
-  if [ -z "$zsh_path" ]; then
-    printf "%b\n\n" "${BLD}${CRE}Zsh is not installed! Cannot change shell${CNC}"
-  fi
-
-  if [ "$SHELL" != "$zsh_path" ]; then
-    printf "%b\n" "${BLD}${CYE}Changing your shell to Zsh...${CNC}"
-
-    if chsh -s "$zsh_path"; then
-      printf "%b\n" "\n${BLD}${CGR}Shell changed successfully!${CNC}"
-    else
-      printf "%b\n\n" "\n${BLD}${CRE}Error changing shell!{CNC}"
-    fi
-  else
-    printf "%b\n\n" "${BLD}${CGR}Zsh is already your default shell!${CNC}"
-  fi
-  sleep 3
-}
-
-# MAIN
-source $DOTFILES_DIR/.settings/DependenciesInstaller
-
-install_dependencies -d "$DEPENDENCIES_FILE" -m yay
-choose_user
-choose_shell
-stow_configs
+# ============================================================
+# Main entry
+# ============================================================
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main
+fi

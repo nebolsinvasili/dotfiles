@@ -1,0 +1,308 @@
+#!/usr/bin/env bash
+# ============================================================
+#
+# ███████╗███████╗██╗  ██╗
+# ██╔════╝██╔════╝██║  ██║
+# ███████╗███████╗███████║
+# ╚════██║╚════██║██╔══██║
+# ███████║███████║██║  ██║
+# ╚══════╝╚══════╝╚═╝  ╚═╝
+# ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗     ███████╗██████╗ 
+# ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║     ██╔════╝██╔══██╗
+# ██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║     █████╗  ██████╔╝
+# ██║██║╚██╗██║╚════██║   ██║   ██╔══██║██║     ██║     ██╔══╝  ██╔══██╗
+# ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗███████╗██║  ██║
+# ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝
+#                                                                                                                          
+#  Project  : SSH Installer
+#  Purpose  : Generate and install SSH keys and configuration
+#  Author   : nebolsinvasili
+#  Repo     : https://github.com/nebolsinvasili/dotfiles.git
+#
+#  License  : GPL-3.0
+#  Created  : 2026
+#  Updated  : 2026-01-08
+#
+# ============================================================
+
+
+set -euo pipefail
+
+# ------------------------------------------------------------
+# Load modules
+# ------------------------------------------------------------
+LOGGING_MODULE="$DOTFILES/.settings/logging"
+[[ -r "$LOGGING_MODULE" ]] && source "$LOGGING_MODULE" \
+    || printf 'WARNING: logging module not found: %s\n' "$LOGGING_MODULE" >&2
+
+LINKED_MODULE="$DOTFILES/.settings/linked"
+[[ -r "$LINKED_MODULE" ]] && source "$LINKED_MODULE" \
+    || printf 'WARNING: linked module not found: %s\n' "$LINKED_MODULE" >&2
+
+GIT_MODULE="$DOTFILES/.settings/git-utils"
+[[ -r "$GIT_MODULE" ]] && source "$GIT_MODULE" \
+    || printf 'WARNING: git utils module not found: %s\n' "$GIT_MODULE" >&2
+
+REPLACE_MODULE="$DOTFILES/.settings/replace"
+[[ -r "$REPLACE_MODULE" ]] && source "$REPLACE_MODULE" \
+    || printf 'WARNING: replace module not found: %s\n' "$REPLACE_MODULE" >&2
+
+DepInst_MODULE="$DOTFILES/.settings/DependenciesInstaller"
+[[ -r "$DepInst_MODULE" ]] && source "$DepInst_MODULE" \
+    || printf 'WARNING: dependencies module not found: %s\n' "$DepInst_MODULE" >&2
+
+
+# ------------------------------------------------------------
+# Default values
+# ------------------------------------------------------------
+
+
+
+# ============================================================
+# Select SSH key type
+# Populates associative array: key_info[type], key_info[bits]
+# ============================================================
+select_key_type() {
+    declare -n key_info_ref=$1
+
+    log_info "${C_BOLD}Select SSH key type:${C_RESET}"
+    echo "  1) Ed25519   (recommended, modern and secure)"
+    echo "  2) RSA 4096  (legacy compatibility)"
+    echo "  3) ECDSA 521 (optional, less common)"
+
+    read -r -p "Selection [1]: " key_choice
+    key_choice=${key_choice:-1}
+
+    case "$key_choice" in
+        1) key_info_ref[type]="ed25519"; key_info_ref[bits]="" ;;
+        2) key_info_ref[type]="rsa";     key_info_ref[bits]=4096 ;;
+        3) key_info_ref[type]="ecdsa";   key_info_ref[bits]=521 ;;
+        *)
+            log_warn -v "Invalid selection. Defaulting to Ed25519."
+            key_info_ref[type]="ed25519"
+            key_info_ref[bits]="" ;;
+    esac
+}
+
+# ============================================================
+# Input email (used as key comment)
+# Returns via stdout
+# ============================================================
+input_email() {
+    read -r -p "Enter email address for key comment [no-reply@example.com]: " user_email
+    user_email=${user_email:-"no-reply@example.com"}
+    echo "$user_email"
+}
+
+# ============================================================
+# Input key file path
+# Args: key_type
+# Returns via stdout
+# ============================================================
+input_keyfile() {
+    local key_type="$1"
+    local default_keyfile="$HOME/.ssh/id_${key_type}_github"
+
+    read -r -p "Enter key file path [${default_keyfile}]: " keyfile
+    keyfile=${keyfile:-$default_keyfile}
+    echo "$keyfile"
+}
+
+# ============================================================
+# Check for existing key files and optionally create backups
+# Args: keyfile
+# ============================================================
+check_existing_keyfile() {
+    local keyfile="$1"
+    local backup_file=""
+
+    if [[ -f "$keyfile" ]]; then
+        log_warn -v "Key file already exists: $keyfile"
+        read -r -p "Create a backup before overwriting? [Y/n]: " backup
+        backup=${backup:-Y}
+
+        if [[ "$backup" =~ ^([yY]|[yY][eE][sS])$ ]]; then
+            backup_file="${keyfile}.bak_$(date +%s)"
+            backup_pubfile="${keyfile}.pub.bak_$(date +%s)"
+
+            mv "$keyfile" "$backup_file"
+            [[ -f "${keyfile}.pub" ]] && mv "${keyfile}.pub" "$backup_pubfile"
+
+            log_ok -v "Existing key backed up to: $backup_file"
+        else
+            log_warn -v "Existing key will be overwritten without backup."
+            rm -f "$keyfile"
+        fi
+    fi
+
+    echo "$backup_file"
+}
+
+# ============================================================
+# Input passphrase
+# Returns via stdout
+# ============================================================
+input_passphrase() {
+    local passphrase passphrase2
+    local max_repeat_attempts=3
+    local repeat_attempt
+
+    while :; do
+        read -s -p "Enter passphrase (leave empty for no passphrase): " passphrase >&2
+        printf "\n" >&2
+
+        if [[ -z "$passphrase" ]]; then
+            log_warn -v "Empty passphrase selected. Private key will not be encrypted." >&2
+            echo ""
+            return 0
+        fi
+
+        repeat_attempt=1
+        while (( repeat_attempt <= max_repeat_attempts )); do
+            read -s -p "Confirm passphrase (${repeat_attempt}/${max_repeat_attempts}): " passphrase2 >&2
+            printf "\n" >&2
+
+            if [[ "$passphrase" == "$passphrase2" ]]; then
+                echo "$passphrase"
+                return 0
+            fi
+
+            log_error -v "Passphrases do not match." >&2
+            ((repeat_attempt++))
+        done
+
+        log_warn -v "Maximum confirmation attempts exceeded. Restarting passphrase entry." >&2
+    done
+}
+
+# ============================================================
+# Confirm key creation
+# ============================================================
+confirm_creation() {
+    local type="$1"
+    local bits="$2"
+    local email="$3"
+    local keyfile="$4"
+
+    log_info -v "The following SSH key will be created:"
+    printf "  Type : %s %s\n" "$type" "${bits:+(${bits}-bit)}"
+    printf "  Email: %s\n" "$email"
+    printf "  File : %s\n" "$keyfile"
+
+    read -r -p "Proceed with key generation? [Y/n]: " confirm
+    confirm=${confirm:-Y}
+
+    [[ "$confirm" =~ ^([yY]|[yY][eE][sS])$ ]] || {
+        log_error -v "Operation cancelled by user."
+        return 1
+    }
+}
+
+# ============================================================
+# Generate SSH key
+# ============================================================
+generate_key() {
+    local type="$1"
+    local bits="$2"
+    local keyfile="$3"
+    local email="$4"
+    local passphrase="$5"
+
+    mkdir -p "$(dirname "$keyfile")"
+    chmod 700 "$(dirname "$keyfile")"
+
+    log_info -v "Generating SSH key..."
+
+    if [[ -z "$bits" ]]; then
+        ssh-keygen -t "$type" -C "$email" -f "$keyfile" -N "$passphrase"
+    else
+        ssh-keygen -t "$type" -b "$bits" -C "$email" -f "$keyfile" -N "$passphrase"
+    fi
+
+    log_ok -v "SSH key successfully generated."
+}
+
+# ============================================================
+# Add key to ssh-agent
+# ============================================================
+add_to_agent() {
+    local keyfile="$1"
+
+    log_info -v "Starting ssh-agent and adding key..."
+
+    eval "$(ssh-agent -s)" >/dev/null 2>&1 || true
+
+    [[ -f "$keyfile" ]] || {
+        log_error -v "Private key file not found: $keyfile"
+        return 1
+    }
+
+    ssh-add "$keyfile"
+    log_ok -v "Key added to ssh-agent."
+}
+
+# ============================================================
+# Display public key and copy to clipboard
+# ============================================================
+show_and_copy_pubkey() {
+    local keyfile="$1"
+    local pubkey="${keyfile}.pub"
+
+    printf "\n${C_BOLD}----- BEGIN PUBLIC KEY -----${C_RESET}\n"
+    cat "$pubkey"
+    printf "${C_BOLD}----- END PUBLIC KEY -----${C_RESET}\n\n"
+
+    if command -v wl-copy >/dev/null 2>&1 && [[ -n "${WAYLAND_DISPLAY:-}" ]]; then
+        wl-copy < "$pubkey" && log_ok "Public key copied to clipboard (Wayland)."
+    elif command -v xclip >/dev/null 2>&1; then
+        xclip -selection clipboard < "$pubkey" && log_ok "Public key copied to clipboard (X11)."
+    elif command -v pbcopy >/dev/null 2>&1; then
+        pbcopy < "$pubkey" && log_ok "Public key copied to clipboard (macOS)."
+    else
+        log_warn -v "Clipboard utility not available. Copy the key manually."
+    fi
+}
+
+# ============================================================
+# Final instructions
+# ============================================================
+show_instructions() {
+    log_ok -v "SSH key generation completed successfully."
+    printf "Verify connection: %s\n" "${C_BOLD}ssh -T git@github.com${C_RESET}"
+    printf "Add the key at:  %s\n\n" "${C_BOLD}https://github.com/settings/keys${C_RESET}"
+}
+
+# ============================================================
+# Main function
+# ============================================================
+main() {
+    # Absolute path of running script
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    DEP="$SCRIPT_DIR/dependencies.toml"
+    LOG="$SCRIPT_DIR/installer.log"
+
+    log_init "$LOG" && log_title "SSH Key Generator started"
+
+    declare -A key_info
+    select_key_type key_info
+
+    user_email="$(input_email)"
+    keyfile="$(input_keyfile "${key_info[type]}")"
+    check_existing_keyfile "$keyfile"
+    passphrase="$(input_passphrase)"
+
+    confirm_creation "${key_info[type]}" "${key_info[bits]}" "$user_email" "$keyfile"
+    generate_key "${key_info[type]}" "${key_info[bits]}" "$keyfile" "$user_email" "$passphrase"
+
+    stow_package -t "$HOME" -d "$SCRIPT_DIR/" -p "config"
+    add_to_agent "$keyfile"
+    show_and_copy_pubkey "$keyfile"
+    show_instructions
+}
+
+# ============================================================
+# Main entry
+# ============================================================
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main
+fi

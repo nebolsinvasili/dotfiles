@@ -1,0 +1,6 @@
+[base]
+packages = [ "git" ]
+[utils]
+packages = [ "ssh-keygen", "ssh-agent", "ssh-add", "openssh", "ssh-tools", "xclip" ]
+[install-utils]
+packages = [ "stow", "curl" ]

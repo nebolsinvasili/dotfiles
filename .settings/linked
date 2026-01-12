@@ -1,0 +1,202 @@
+#!/usr/bin/env bash
+# ============================================================
+#
+# ██╗      ██████╗  ██████╗  ██████╗ ███████╗██████╗
+# ██║     ██╔═══██╗██╔════╝ ██╔════╝ ██╔════╝██╔══██╗
+# ██║     ██║   ██║██║  ███╗██║  ███╗█████╗  ██████╔╝
+# ██║     ██║   ██║██║   ██║██║   ██║██╔══╝  ██╔══██╗
+# ███████╗╚██████╔╝╚██████╔╝╚██████╔╝███████╗██║  ██║
+# ╚══════╝ ╚═════╝  ╚═════╝  ╚═════╝ ╚══════╝╚═╝  ╚═╝
+#  ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗
+# ██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝
+# ██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗
+# ██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║
+# ╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝
+#  ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝     #
+#
+#  Project : Logger configuration
+#  Purpose : A script containing the main colors of the installer.
+#  Author  : nebolsinvasili
+#  Repo    : https://github.com/nebolsinvasili/dotfiles.git
+#
+#  License : GPL-3.0
+#  Created : 2021
+#  Updated : 2025-03-24
+#
+# ============================================================
+
+set -euo pipefail
+
+# ------------------------------------------------------------
+# Load logging
+# ------------------------------------------------------------
+LOGGING_MODULE="$DOTFILES/.settings/logging"
+if [[ -r "$LOGGING_MODULE" ]]; then
+    source "$LOGGING_MODULE"
+else
+    printf 'WARNING: logging module not found: %s\n' "$LOGGING_MODULE" >&2
+fi
+
+
+# ============================================================
+# Deploy dotfiles package using GNU Stow
+# ============================================================
+function stow_package() {
+    local package=""
+    local target_dir="$HOME"
+    local stow_dir="$DOTFILES"
+    local dry_run=false
+    local verbose=true
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -p|--package)
+                package="$2"
+                shift 2
+                ;;
+            -t|--target)
+                target_dir="$2"
+                shift 2
+                ;;
+            -d|--dir)
+                stow_dir="$2"
+                shift 2
+                ;;
+            -n|--dry-run)
+                dry_run=true
+                shift
+                ;;
+            -v|--verbose)
+                verbose=false
+                shift
+                ;;
+            -h|--help)
+                cat <<EOF
+Usage:
+  stow_package [OPTIONS]
+
+Options:
+  -p, --package <name>     Stow package name (required)
+  -t, --target  <dir>      Target directory (default: \$HOME)
+  -d, --dir     <dir>      Stow directory (default: \$DOTFILES)
+  -n, --dry-run            Dry run (no changes)
+  -v, --verbose            Disable verbose output
+  -h, --help               Show this help
+
+Examples:
+  stow_package -p git
+  stow_package -p nvim -t /home/user
+  stow_package -p zsh -n
+  stow_package --package tmux --dir ~/dotfiles
+EOF
+                return 0
+                ;;
+            *)
+                log_error -v "Unknown option: $1"
+                return 1
+                ;;
+        esac
+    done
+
+    if [[ -z "$package" ]]; then
+        log_error -v "Stow package name is required"
+        return 1
+    fi
+
+    if ! command -v stow >/dev/null 2>&1; then
+        log_error -v "GNU Stow is not installed"
+        return 1
+    fi
+
+    if [[ ! -d "$stow_dir/$package" ]]; then
+        log_error -v "Stow package not found: $stow_dir/$package"
+        return 1
+    fi
+
+    local flags="-R"
+    $verbose && flags="$flags -v"
+    $dry_run && flags="$flags -n"
+
+    log_info -v "Stowing package '${package}' → ${target_dir}"
+    stow $flags -t "$target_dir" "$stow_dir"
+    log_ok -v "Package '${package}' deployed"
+}
+
+# ============================================================
+# Remove dotfiles package using GNU Stow
+# ============================================================
+function unstow_package() {
+    local package=""
+    local target_dir="$HOME"
+    local stow_dir="$DOTFILES"
+    local dry_run=false
+    local verbose=true
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -p|--package)
+                package="$2"
+                shift 2
+                ;;
+            -t|--target)
+                target_dir="$2"
+                shift 2
+                ;;
+            -d|--dir)
+                stow_dir="$2"
+                shift 2
+                ;;
+            -n|--dry-run)
+                dry_run=true
+                shift
+                ;;
+            -v|--verbose)
+                verbose=false
+                shift
+                ;;
+            -h|--help)
+                cat <<EOF
+Usage:
+  unstow_package [OPTIONS]
+
+Options:
+  -p, --package <name>     Stow package name (required)
+  -t, --target  <dir>      Target directory (default: \$HOME)
+  -d, --dir     <dir>      Stow directory (default: \$DOTFILES)
+  -n, --dry-run            Dry run (no changes)
+  -v, --verbose            Disable verbose output
+  -h, --help               Show this help
+
+Examples:
+  unstow_package -p git
+  unstow_package -p nvim -n
+  unstow_package --package zsh --target /home/user
+EOF
+                return 0
+                ;;
+            *)
+                log_error -v "Unknown option: $1"
+                return 1
+                ;;
+        esac
+    done
+
+    # if [[ -z "$package" ]]; then
+    #     log_error -v "Unstow package name is required"
+    #     return 1
+    # fi
+
+    if ! command -v stow >/dev/null 2>&1; then
+        log_error -v "GNU Stow is not installed"
+        return 1
+    fi
+
+    local flags="-D"
+    $verbose && flags="$flags -v"
+    $dry_run && flags="$flags -n"
+
+    log_info -v "Unstowing package '${package}' from ${target_dir}"
+    stow $flags -t "$target_dir" "$stow_dir"
+    log_ok -v "Package '${package}' removed"
+}
+

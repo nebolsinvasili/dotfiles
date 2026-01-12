@@ -1,0 +1,14 @@
+[2026-01-09 01:46:26] [INFO] [1mSelect SSH key type:(B[m
+[2026-01-09 01:46:46] [WARN] Key file already exists: /home/nebolsinvasili/.ssh/id_ed25519_github
+[2026-01-09 01:46:51] [WARN] Existing key will be overwritten without backup.
+[2026-01-09 01:47:08] [ERROR] Passphrases do not match.
+[2026-01-09 01:47:15] [ERROR] Passphrases do not match.
+[2026-01-09 01:47:24] [INFO] The following SSH key will be created:
+[2026-01-09 01:47:29] [INFO] Generating SSH key...
+[2026-01-09 01:47:30] [OK] SSH key successfully generated.
+[2026-01-09 01:47:30] [INFO] Stowing package 'config' → /home/nebolsinvasili
+[2026-01-09 01:47:30] [OK] Package 'config' deployed
+[2026-01-09 01:47:30] [INFO] Starting ssh-agent and adding key...
+[2026-01-09 01:47:36] [OK] Key added to ssh-agent.
+[2026-01-09 01:47:36] [OK] Public key copied to clipboard (X11).
+[2026-01-09 01:47:36] [OK] SSH key generation completed successfully.

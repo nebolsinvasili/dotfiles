@@ -1,12 +1,18 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # ============================================================
 #
-# ██╗   ██╗ █████╗ ██╗   ██╗                                            
-# ╚██╗ ██╔╝██╔══██╗╚██╗ ██╔╝                                            
-#  ╚████╔╝ ███████║ ╚████╔╝                                             
-#   ╚██╔╝  ██╔══██║  ╚██╔╝                                              
-#    ██║   ██║  ██║   ██║                                               
-#    ╚═╝   ╚═╝  ╚═╝   ╚═╝                                               
+# ██╗    ██╗██╗███╗   ██╗██████╗  ██████╗ ██╗    ██╗
+# ██║    ██║██║████╗  ██║██╔══██╗██╔═══██╗██║    ██║
+# ██║ █╗ ██║██║██╔██╗ ██║██║  ██║██║   ██║██║ █╗ ██║
+# ██║███╗██║██║██║╚██╗██║██║  ██║██║   ██║██║███╗██║
+# ╚███╔███╔╝██║██║ ╚████║██████╔╝╚██████╔╝╚███╔███╔╝
+#  ╚══╝╚══╝ ╚═╝╚═╝  ╚═══╝╚═════╝  ╚═════╝  ╚══╝╚══╝ 
+# ███╗   ███╗ █████╗ ███╗   ██╗ █████╗  ██████╗ ███████╗██████╗ 
+# ████╗ ████║██╔══██╗████╗  ██║██╔══██╗██╔════╝ ██╔════╝██╔══██╗
+# ██╔████╔██║███████║██╔██╗ ██║███████║██║  ███╗█████╗  ██████╔╝
+# ██║╚██╔╝██║██╔══██║██║╚██╗██║██╔══██║██║   ██║██╔══╝  ██╔══██╗
+# ██║ ╚═╝ ██║██║  ██║██║ ╚████║██║  ██║╚██████╔╝███████╗██║  ██║
+# ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝
 # ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗     ███████╗██████╗ 
 # ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║     ██╔════╝██╔══██╗
 # ██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║     █████╗  ██████╔╝
@@ -14,8 +20,8 @@
 # ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗███████╗██║  ██║
 # ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝#
 #
-#  Project  : YAY Installer
-#  Purpose  : Install package manager.
+#  Project  : Window Manager Installer
+#  Purpose  : Install window manager.
 #  Author   : nebolsinvasili
 #  Repo     : https://github.com/nebolsinvasili/dotfiles.git
 #
@@ -25,39 +31,61 @@
 #
 # ============================================================
 
-DOTFILES_DIR="/home/nebolsinvasili/dotfiles"
 
-# Load logging functions
-LOGGING_DIR="$DOTFILES_DIR/.settings/logging"
-if [ -f "$LOGGING_DIR" ]; then
-    . "$LOGGING_DIR"
-else
-    echo "WARNING: Logging file not found: $LOGGING_DIR"
-    exit 1
-fi
+set -euo pipefail
 
-# Absolute path of running script
-SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+# ------------------------------------------------------------
+# Load modules
+# ------------------------------------------------------------
+LOGGING_MODULE="$DOTFILES/.settings/logging"
+[[ -r "$LOGGING_MODULE" ]] && source "$LOGGING_MODULE" \
+    || printf 'WARNING: logging module not found: %s\n' "$LOGGING_MODULE" >&2
 
+LINKED_MODULE="$DOTFILES/.settings/linked"
+[[ -r "$LINKED_MODULE" ]] && source "$LINKED_MODULE" \
+    || printf 'WARNING: linked module not found: %s\n' "$LINKED_MODULE" >&2
+
+GIT_MODULE="$DOTFILES/.settings/git-utils"
+[[ -r "$GIT_MODULE" ]] && source "$GIT_MODULE" \
+    || printf 'WARNING: git utils module not found: %s\n' "$GIT_MODULE" >&2
+
+REPLACE_MODULE="$DOTFILES/.settings/replace"
+[[ -r "$REPLACE_MODULE" ]] && source "$REPLACE_MODULE" \
+    || printf 'WARNING: replace module not found: %s\n' "$REPLACE_MODULE" >&2
+
+DepInst_MODULE="$DOTFILES/.settings/DependenciesInstaller"
+[[ -r "$DepInst_MODULE" ]] && source "$DepInst_MODULE" \
+    || printf 'WARNING: dependencies module not found: %s\n' "$DepInst_MODULE" >&2
+
+
+# ------------------------------------------------------------
 # Default values
-DEPENDENCIES_FILE="$SCRIPT_DIR/dependencies.toml"
-PACKAGE_MANAGER="yay"
+# ------------------------------------------------------------
 
 
-# MAIN
-source $DOTFILES_DIR/.settings/DependenciesInstaller
 
-install_dependencies -d "$DEPENDENCIES_FILE" -m yay
+# ============================================================
+# main entry (cli)
+# ============================================================
+main() {
+    # Absolute path of running script
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    DEP="$SCRIPT_DIR/dependencies.toml"
+    LOG="$SCRIPT_DIR/installer.log"
 
-stow -R -v -t ~ config
-# mkdir -p ~/.screenlayout && stow -R -v -t ~/.screenlayout .screenlayout
+    log_init "$LOG" && log_title "Shell installer started"
 
-sudo chmod +x ~/.config/bspwm/bspwmrc
-sudo chmod +x ~/.config/bspwm/config/sxhkdrc
-sudo chmod +x ~/.config/bspwm/bin/run
-# sudo chmod +x ~/.screenlayout/display.sh
+    install_dependencies -d "$DEP" -l "$LOG" -m yay
 
-cat <<EOF >~/.xinitrc
+    # stow_package -t "$HOME/.config" "config"
+    stow -R -v -t "$HOME/.config" "config"
+
+    sudo chmod +x ~/.config/bspwm/bspwmrc
+    sudo chmod +x ~/.config/bspwm/config/sxhkdrc
+    sudo chmod +x ~/.config/bspwm/bin/run
+    # sudo chmod +x ~/.screenlayout/display.sh
+
+    cat <<EOF >~/.xinitrc
 export PATH="$HOME/.config/bspwm/bin:$PATH"
 
 xrandr &&
@@ -69,35 +97,11 @@ exec bspwm -c ~/.config/bspwm/bspwmrc
 
 EOF
 
-# Сохранение текущей директории
-original_dir="$(pwd)"
+}
 
-# Массив скриптов для установки
-PROGRAMS_DIR="$DOTFILES_DIR/programs"
-PROGRAMS=(
-  "$PROGRAMS_DIR/terminal/xorg/kitty/install.sh"
-  "$PROGRAMS_DIR/cli/install.sh"
-  "$PROGRAMS_DIR/brousers/firefox/install.sh"
-)
-
-# Проходим по каждому скрипту в массиве
-for dir in "${PROGRAMS[@]}"; do
-  if [ -f "$dir" ]; then
-    # Получаем директорию, в которой находится скрипт
-    script_dir=$(dirname "$dir")
-    
-    # Переходим в директорию скрипта
-    cd "$script_dir" || { echo "Не удалось перейти в директорию $script_dir"; exit 1; }
-    
-    # Выполняем скрипт
-    echo "Выполнение скрипта $dir в директории $(pwd)"
-    source "$dir" || { echo "Не удалось выполнить скрипт $dir"; exit 1; }
-    
-    # Возвращаемся в исходную директорию
-    cd "$original_dir" || { echo "Не удалось вернуться в исходную директорию"; exit 1; }
-  else
-    echo "Install script not found: $dir"
-    exit 1
-  fi
-done
-
+# ============================================================
+# main entry
+# ============================================================
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main
+fi
