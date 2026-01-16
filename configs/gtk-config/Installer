@@ -69,11 +69,11 @@ main() {
 
     log_init "$LOG" && log_title "GTK & Qt installer started"
 
-    install_dependencies -d "$DEP" -l "$LOG" -m yay
+    # install_dependencies -d "$DEP" -l "$LOG" -m yay
 
-    git_clone https://github.com/zhichaoh/catppuccin-wallpapers.git ~/.config/wallpapers
+    # git_clone https://github.com/zhichaoh/catppuccin-wallpapers.git ~/.config/wallpapers
 
-    stow_package -t "$HOME" -d "$SCRIPT_DIR/" -p "config"
+    stow_package -t "$HOME" -p "config"
 
 }
 

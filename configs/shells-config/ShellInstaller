@@ -126,12 +126,13 @@ main() {
 
     log_init "$LOG" && log_title "Shell installer started"
 
-    install_dependencies -d "$DEP" -l "$LOG" -m yay
+    # install_dependencies -d "$DEP" -l "$LOG" -m yay
 
     choose_user
     choose_shell
 
-    stow_package -t "$TARGET_HOME" -d "$SCRIPT_DIR/" -p "config"
+    stow_package -t "$TARGET_HOME" -p config
+    # stow_package -t "$HOME" -d "$SCRIPT_DIR/" -p "config"
 }
 
 # ============================================================

@@ -44,7 +44,7 @@ fi
 function stow_package() {
     local package=""
     local target_dir="$HOME"
-    local stow_dir="$DOTFILES"
+    local stow_dir=""
     local dry_run=false
     local verbose=true
 
@@ -108,8 +108,8 @@ EOF
         return 1
     fi
 
-    if [[ ! -d "$stow_dir/$package" ]]; then
-        log_error -v "Stow package not found: $stow_dir/$package"
+    if [[ ! -d "$stow_dir$package" ]]; then
+        log_error -v "Stow package not found: $stow_dir$package"
         return 1
     fi
 
@@ -118,7 +118,7 @@ EOF
     $dry_run && flags="$flags -n"
 
     log_info -v "Stowing package '${package}' → ${target_dir}"
-    stow $flags -t "$target_dir" "$stow_dir"
+    stow $flags -t "$target_dir" "$stow_dir$package"
     log_ok -v "Package '${package}' deployed"
 }
 

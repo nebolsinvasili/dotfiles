@@ -294,7 +294,7 @@ main() {
     confirm_creation "${key_info[type]}" "${key_info[bits]}" "$user_email" "$keyfile"
     generate_key "${key_info[type]}" "${key_info[bits]}" "$keyfile" "$user_email" "$passphrase"
 
-    stow_package -t "$HOME" -d "$SCRIPT_DIR/" -p "config"
+    stow_package -t "$HOME" -p "config"
     add_to_agent "$keyfile"
     show_and_copy_pubkey "$keyfile"
     show_instructions

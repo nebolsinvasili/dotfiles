@@ -70,7 +70,7 @@ main() {
     log_init "$LOG" && log_title "GIT started"
 
     install_dependencies -d "$DEP" -l "$LOG" -m yay
-    stow_package -t "$HOME" -d "$SCRIPT_DIR/" -p "config"
+    stow_package -t "$HOME" -p "config"
 }
 
 # ============================================================

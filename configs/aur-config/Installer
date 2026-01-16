@@ -46,6 +46,10 @@ REPLACE_MODULE="$DOTFILES/.settings/replace"
 [[ -r "$REPLACE_MODULE" ]] && source "$REPLACE_MODULE" \
     || printf 'WARNING: replace module not found: %s\n' "$REPLACE_MODULE" >&2
 
+DepInst_MODULE="$DOTFILES/.settings/DependenciesInstaller"
+[[ -r "$DepInst_MODULE" ]] && source "$DepInst_MODULE" \
+    || printf 'WARNING: dependencies module not found: %s\n' "$DepInst_MODULE" >&2
+
 
 # ------------------------------------------------------------
 # Default values
