@@ -90,8 +90,6 @@ export PATH="$HOME/.config/bspwm/bin:$PATH"
 
 xrandr &&
 
-xrdb ~/.Xresources
-
 exec sxhkd -c ~/.config/bspwm/config/sxhkdrc &  
 exec bspwm -c ~/.config/bspwm/bspwmrc
 

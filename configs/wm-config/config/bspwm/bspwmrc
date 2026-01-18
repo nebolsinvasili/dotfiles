@@ -30,10 +30,10 @@ MonitorSetup
 
 bspc config external_rules_command "${HOME}"/.config/bspwm/bin/ExternalRules
 
-bspc config single_monocle	true
-bspc config borderless_monocle	true
-bspc config gapless_monocle	false
-bspc config paddingless_monocle	true
+bspc config single_monocle true
+bspc config borderless_monocle true
+bspc config gapless_monocle false
+bspc config paddingless_monocle true
 
 bspc config removal_adjustment true
 
@@ -54,7 +54,6 @@ source ~/.config/bspwm/bspwm-rules
 #  ╠═╣║ ║ ║ ║ ║╚═╗ ║ ╠═╣╠╦╝ ║
 #  ╩ ╩╚═╝ ╩ ╚═╝╚═╝ ╩ ╩ ╩╩╚═ ╩
 
-
 run() {
   if ! pidof -q "$1"; then
     "$@" &
@@ -71,6 +70,7 @@ numlockx &
 
 # Load current theme
 "${HOME}"/.config/bspwm/bin/Theme.sh
+xsetroot -cursor_name left_ptr &
 
 # Launch picom
 run picom --config "${HOME}"/.config/bspwm/config/picom/picom.conf
@@ -79,12 +79,3 @@ run dunst --config "${HOME}"/.config/bspwm/config/dunst/dunstrc
 
 # Launch xsettingsd
 run xsettingsd --config="${HOME}"/.config/bspwm/config/xsettingsd >/dev/null 2>&1
-
-# Launch clipboard daemon
-# run clipcatd
-
-# Launch polkit
-# run lxpolkit
-
-# Start programs
-# source ~/.config/bspwm/bspwm-start-programs

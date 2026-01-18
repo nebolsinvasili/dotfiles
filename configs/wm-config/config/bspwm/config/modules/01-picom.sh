@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-
 replace_line_regex() {
-    local file backup=1 regex newline
+  local file backup=1 regex newline
 
-    show_help() {
-        cat <<'EOF'
+  show_help() {
+    cat <<'EOF'
 Usage:
   replace_line_regex [OPTIONS] REGEX NEW_LINE
 
@@ -19,38 +18,58 @@ Description:
   Replaces the ENTIRE line if REGEX matches.
   REGEX is POSIX ERE.
 EOF
-    }
+  }
 
-    while [ $# -gt 0 ]; do
-        case "$1" in
-            -f|--file) file="$2"; shift 2 ;;
-            -n|--no-backup) backup=0; shift ;;
-            -h|--help) show_help; return 0 ;;
-            --) shift; break ;;
-            *) break ;;
-        esac
-    done
+  while [ $# -gt 0 ]; do
+    case "$1" in
+    -f | --file)
+      file="$2"
+      shift 2
+      ;;
+    -n | --no-backup)
+      backup=0
+      shift
+      ;;
+    -h | --help)
+      show_help
+      return 0
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *) break ;;
+    esac
+  done
 
-    [ $# -eq 2 ] || { echo "error: REGEX and NEW_LINE required" >&2; return 1; }
-    [ -n "${file:-}" ] || { echo "error: --file is required" >&2; return 2; }
-    [ -f "$file" ] || { echo "error: file not found: $file" >&2; return 3; }
+  [ $# -eq 2 ] || {
+    echo "error: REGEX and NEW_LINE required" >&2
+    return 1
+  }
+  [ -n "${file:-}" ] || {
+    echo "error: --file is required" >&2
+    return 2
+  }
+  [ -f "$file" ] || {
+    echo "error: file not found: $file" >&2
+    return 3
+  }
 
-    regex="$1"
-    newline="$2"
+  regex="$1"
+  newline="$2"
 
-    if [ "$backup" -eq 1 ]; then
-        sed -E -i.bak "/$regex/c\\$newline" "$file"
-    else
-        sed -E -i "/$regex/c\\$newline" "$file"
-    fi
+  if [ "$backup" -eq 1 ]; then
+    sed -E -i.bak "/$regex/c\\$newline" "$file"
+  else
+    sed -E -i "/$regex/c\\$newline" "$file"
+  fi
 }
 
-
 replace_regex() {
-    local file backup=1 regex replacement flags="g"
+  local file backup=1 regex replacement flags="g"
 
-    show_help() {
-        cat <<'EOF'
+  show_help() {
+    cat <<'EOF'
 Usage:
   replace_regex [OPTIONS] REGEX REPLACEMENT
 
@@ -64,37 +83,59 @@ Description:
   Performs regex substitution using POSIX ERE.
   Supports capture groups (\1, \2, ...).
 EOF
-    }
+  }
 
-    while [ $# -gt 0 ]; do
-        case "$1" in
-            -f|--file) file="$2"; shift 2 ;;
-            -n|--no-backup) backup=0; shift ;;
-            -1) flags=""; shift ;;
-            -h|--help) show_help; return 0 ;;
-            --) shift; break ;;
-            *) break ;;
-        esac
-    done
+  while [ $# -gt 0 ]; do
+    case "$1" in
+    -f | --file)
+      file="$2"
+      shift 2
+      ;;
+    -n | --no-backup)
+      backup=0
+      shift
+      ;;
+    -1)
+      flags=""
+      shift
+      ;;
+    -h | --help)
+      show_help
+      return 0
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *) break ;;
+    esac
+  done
 
-    [ $# -eq 2 ] || { echo "error: REGEX and REPLACEMENT required" >&2; return 1; }
-    [ -n "${file:-}" ] || { echo "error: --file is required" >&2; return 2; }
-    [ -f "$file" ] || { echo "error: file not found: $file" >&2; return 3; }
+  [ $# -eq 2 ] || {
+    echo "error: REGEX and REPLACEMENT required" >&2
+    return 1
+  }
+  [ -n "${file:-}" ] || {
+    echo "error: --file is required" >&2
+    return 2
+  }
+  [ -f "$file" ] || {
+    echo "error: file not found: $file" >&2
+    return 3
+  }
 
-    regex="$1"
-    replacement="$2"
+  regex="$1"
+  replacement="$2"
 
-    if [ "$backup" -eq 1 ]; then
-        sed -E -i.bak "s|$regex|$replacement|$flags" "$file"
-    else
-        sed -E -i "s|$regex|$replacement|$flags" "$file"
-    fi
+  if [ "$backup" -eq 1 ]; then
+    sed -E -i.bak "s|$regex|$replacement|$flags" "$file"
+  else
+    sed -E -i "s|$regex|$replacement|$flags" "$file"
+  fi
 }
-
 
 picom_conf_file="$HOME/.config/bspwm/config/picom/picom.conf"
 picom_animations_file="$HOME/.config/bspwm/config/picom/picom-animations.conf"
-
 
 # --- Shadows ---
 replace_regex -f "$picom_conf_file" \
@@ -130,6 +171,10 @@ replace_regex -f "$picom_conf_file" \
 
 # --- Blur ---
 replace_regex -f "$picom_conf_file" \
+  '^blur-background\s*=.*' \
+  "blur-background = ${PICOM_BLUR_SWITCH}"
+
+replace_regex -f "$picom_conf_file" \
   '^blur-method\s*=.*' \
   "blur-method = \"${PICOM_BLUR_METHOD}\""
 
@@ -145,8 +190,7 @@ replace_regex -f "$picom_conf_file" \
   '^blur-strength\s*=.*' \
   "blur-strength = ${PICOM_BLUR_STRENGTH}"
 
-# # --- Animations include ---
-# replace_line_regex -f "$picom_conf_file" \
-#   'picom-animations' \
-#   "${PICOM_ANIMATIONS_SWITCH}include \"picom-animations.conf\""
-
+# --- Animations include ---
+replace_line_regex -f "$picom_conf_file" \
+  'picom-animations' \
+  "${PICOM_ANIMATIONS_SWITCH}include \"picom-animations.conf\""

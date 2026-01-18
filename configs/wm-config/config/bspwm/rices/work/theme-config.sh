@@ -36,24 +36,23 @@ arch_icon="#0f94d2"
 # Bspwm options
 # ============================================================
 
-BSPWM_WINDOW_GAP="24"
+BSPWM_WINDOW_GAP="8"
 
 BSPWM_TOP_PADDING="0"
 BSPWM_BOTTOM_PADDING="0"
 BSPWM_LEFT_PADDING="0"
 BSPWM_RIGHT_PADDING="0"
 
-BSPWM_BORDER_WIDTH="3"
+BSPWM_BORDER_WIDTH="2"
 BSPWM_NORMAL_BORDER_COLOR="#202020"
 BSPWM_ACTIVE_BORDER_COLOR="#202020"
-BSPWM_FOCUSED_BORDER_COLOR="#222222"
+BSPWM_FOCUSED_BORDER_COLOR="#242424"
 BSPWM_PRESEL_BORDER_COLOR="#202020"
 
 BSPWM_SPLIT_RATIO="0.50"
 
 BSPWM_AUTOMATIC_SCHEME="longest_side"
 BSPWM_INITIAL_POLARITY="second_child"
-
 
 # ============================================================
 # Picom options
@@ -64,24 +63,23 @@ PICOM_SHADOW_COLOR="$bg"
 
 PICOM_FADING_SWITCH="true"
 
-PICOM_ACTIVE_OPACITY="0.80"
-PICOM_INACTIVE_OPACITY="0.80"
-PICOM_FRAME_OPACITY="0.80"
+PICOM_ACTIVE_OPACITY="0.50"
+PICOM_INACTIVE_OPACITY="0.50"
+PICOM_FRAME_OPACITY="0.50"
 
 PICOM_CORNER_RADIUS="6"
 
+PICOM_BLUR_SWITCH="true"
 PICOM_BLUR_METHOD="dual_kawase"
 PICOM_BLUR_SIZE="10"
 PICOM_BLUR_DEVIATION="20"
-PICOM_BLUR_STRENGTH="7"
+PICOM_BLUR_STRENGTH="1"
 
 PICOM_ANIMATIONS_SWITCH="@"
-
 
 # Terminal font & size
 term_font_size="10"
 term_font_name="JetBrainsMono Nerd Font"
-
 
 # Dunst
 dunst_offset='(20, 60)'
@@ -91,7 +89,7 @@ dunst_corner_radius='6'
 dunst_font='JetBrainsMono NF Medium 9'
 dunst_border='0'
 dunst_frame_color="$accent_color"
-dunst_icon_theme="TokyoNight-SE"
+dunst_icon_theme="WhiteSur-dark"
 # Dunst animations
 dunst_close_preset="fly-out"
 dunst_close_direction="up"
@@ -124,9 +122,9 @@ sl_date="${fg}"
 sl_verify="${green}"
 
 # Gtk theme
-gtk_theme="TokyoNight-zk"
-gtk_icons="TokyoNight-SE"
-gtk_cursor="Qogirr-Dark"
+gtk_theme="WhiteSur-Dark"
+gtk_icons="WhiteSur-dark"
+gtk_cursor="Qogir-cursors"
 geany_theme="z0mbi3-TokyoNight"
 
 # Wallpaper engine
@@ -139,5 +137,5 @@ geany_theme="z0mbi3-TokyoNight"
 ENGINE="Default"
 
 CUSTOM_DIR="/path/to/your/wallpapers/directory"
-DEFAULT_WALL="/home/nebolsinvasili/.config/bspwm/rices/work/wallpapers/lw5hznq0oaj91.png"
+DEFAULT_WALL="/home/nebolsinvasili/.config/bspwm/rices/work/wallpapers/tlxhrrd0oaj91.png"
 ANIMATED_WALL="$HOME/.config/bspwm/config/assets/animated_wall.mp4"

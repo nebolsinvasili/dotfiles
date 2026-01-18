@@ -16,7 +16,8 @@ packages = [
 "picom", 
 "rofi", 
 "dunst", 
-"feh"
+"feh", 
+"betterlockscreen"
 ]
 
 [utils]

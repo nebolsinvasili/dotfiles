@@ -27,3 +27,4 @@ MODULE_DIR="$HOME/.config/bspwm/config/modules"
 for module in "$MODULE_DIR"/*.sh; do
     source "$module"
 done
+
