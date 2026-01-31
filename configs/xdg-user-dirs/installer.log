@@ -1,0 +1,6 @@
+[2026-01-23 01:25:43] [INFO] Using package manager: pacman
+[2026-01-23 01:25:54] [OK] Package database updated
+[2026-01-23 01:25:54] [INFO] Installing xdg-user-dirs ...
+[2026-01-23 01:25:54] [OK] All packages in block 'base' installed successfully
+[2026-01-23 01:25:54] [INFO] Installing stow ...
+[2026-01-23 01:25:54] [OK] All packages in block 'install-utils' installed successfully

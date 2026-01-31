@@ -37,7 +37,7 @@ font = JetBrainsMono NF Medium 9
 line_height = 0
 
 markup = full
-format = "<span size='xx-large' font_desc='Cantarell 9' weight='bold' foreground='#7aa2f7'>%s</span>\n%b"
+format = "<span size='xx-large' font_desc='Cantarell 9' weight='bold' foreground='#62a0ea'>%s</span>\n%b"
 alignment = center
 vertical_alignment = center
 
@@ -82,15 +82,15 @@ class = Dunst
 
 [urgency_low]
 timeout = 3
-background = "#1a1b26"
-foreground = "#9ece6a"
+background = "#1d1d1d"
+foreground = "#57e389"
 
 [urgency_normal]
 timeout = 5
-background = "#1a1b26"
-foreground = "#c0caf5"
+background = "#1d1d1d"
+foreground = "#deddda"
 
 [urgency_critical]
 timeout = 0
-background = "#1a1b26"
-foreground = "#f7768e"
+background = "#1d1d1d"
+foreground = "#ed333b"

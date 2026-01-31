@@ -1,0 +1,5 @@
+[base]
+packages = [ "xdg-user-dirs" ]
+
+[install-utils]
+packages = [ "stow" ]
