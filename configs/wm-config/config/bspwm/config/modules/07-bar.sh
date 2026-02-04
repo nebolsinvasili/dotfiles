@@ -1,9 +1,3 @@
 #!/usr/bin/env bash
 
-# . "$HOME"/.config/bspwm/rices/"$RICE"/polybar/launcher.sh
-
-# This file launch the bar/s
-for mon in $(polybar --list-monitors | cut -d":" -f1); do
-	MONITOR=$mon polybar -q emi-bar -c "${HOME}"/.config/bspwm/rices/"${RICE}"/polybar/config.ini &
-done
-
+source "$HOME"/.config/bspwm/rices/"$RICE"/polybar/launcher.sh

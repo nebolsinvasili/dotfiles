@@ -5,6 +5,8 @@
 # Copyright (C) 2021-2025 gh0stzk <z0mbi3.zk@protonmail.com>
 # https://github.com/gh0stzk/dotfiles
 
+export LC_NUMERIC=C
+
 # ============================================================
 # General colorscheme
 # ============================================================
@@ -14,7 +16,6 @@ foreground="#deddda"
 
 selection_background="#303030"
 selection_foreground="#c0bfbc"
-
 
 accent_color="#222330"
 arch_icon="#0f94d2"
@@ -57,18 +58,18 @@ BORDER_INACTIVE="$background"
 URGENT="#ed333b"
 
 # Alpha
-ALPHA_BG="0.88"
-ALPHA_FG="1.0"
-ALPHA_POPUP="0.94"
-ALPHA_BORDER="0.9"
+ALPHA_BG=0.88
+ALPHA_FG=1.0
+ALPHA_POPUP=0.94
+ALPHA_BORDER=0.9
 
 # RGBA helpers
-rgba () {
-    hex=${1#"#"}
-    r=$((16#${hex:0:2}))
-    g=$((16#${hex:2:2}))
-    b=$((16#${hex:4:2}))
-    printf "rgba(%d,%d,%d,%.2f)" "$r" "$g" "$b" "$2"
+rgba() {
+  hex=${1#"#"}
+  r=$((16#${hex:0:2}))
+  g=$((16#${hex:2:2}))
+  b=$((16#${hex:4:2}))
+  printf "rgba(%d,%d,%d,%.2f)" "$r" "$g" "$b" "$2"
 }
 
 BG_RGBA=$(rgba "$BG_HEX" "$ALPHA_BG")
@@ -107,16 +108,16 @@ PICOM_SHADOW_COLOR="$background"
 
 PICOM_FADING_SWITCH="true"
 
-PICOM_ACTIVE_OPACITY="0.50"
-PICOM_INACTIVE_OPACITY="0.50"
-PICOM_FRAME_OPACITY="0.50"
+PICOM_ACTIVE_OPACITY="0.95"
+PICOM_INACTIVE_OPACITY="0.95"
+PICOM_FRAME_OPACITY="0.95"
 
-PICOM_CORNER_RADIUS="8"
+PICOM_CORNER_RADIUS="12"
 
 PICOM_BLUR_SWITCH="true"
 PICOM_BLUR_METHOD="dual_kawase"
-PICOM_BLUR_SIZE="4"
-PICOM_BLUR_DEVIATION="20"
+PICOM_BLUR_SIZE="1"
+PICOM_BLUR_DEVIATION="10"
 PICOM_BLUR_STRENGTH="1"
 
 PICOM_ANIMATIONS_SWITCH="@" # (@ = enable) (# = disable)
@@ -163,6 +164,7 @@ sl_verify="${GREEN}"
 gtk_theme="WhiteSur-Dark"
 gtk_icons="WhiteSur-dark"
 gtk_cursor="Qogir-cursors"
+gtk_cursor_size="16"
 geany_theme="z0mbi3-TokyoNight"
 
 # Wallpaper engine
@@ -175,5 +177,5 @@ geany_theme="z0mbi3-TokyoNight"
 ENGINE="Default"
 
 CUSTOM_DIR="/path/to/your/wallpapers/directory"
-DEFAULT_WALL="/home/nebolsinvasili/.config/bspwm/rices/work/wallpapers/tlxhrrd0oaj91.png"
+DEFAULT_WALL="/home/nebolsinvasili/.config/bspwm/rices/night/wallpapers/lw5hznq0oaj91.png"
 ANIMATED_WALL="$HOME/.config/bspwm/config/assets/animated_wall.mp4"

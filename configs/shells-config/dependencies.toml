@@ -17,6 +17,9 @@ packages = [
 "unzip"
 ]
 
+[lang]
+packages = ["pyenv", "poetry", "tk"]
+
 [install-utils]
 packages = [
 "stow"

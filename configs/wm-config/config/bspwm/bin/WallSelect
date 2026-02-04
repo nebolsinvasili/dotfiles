@@ -1,105 +1,147 @@
 #!/bin/sh
 # =============================================================
-# Author:  gh0stzk
-# Repo:    https://github.com/gh0stzk/dotfiles
-# Date:    27.06.2025 11:43:32
-
-# WallSelect - Dynamic wallpaper selector with intelligent caching system
-# Features:
-#   ✔ Auto-updating menu (add/delete wallpapers without restart)
-#   ✔ Parallel image processing (optimized CPU usage)
-#   ✔ XXHash64 checksum verification for cache integrity
-#   ✔ Orphaned cache detection and cleanup
-#   ✔ Lockfile system for safe concurrent operations
-#   ✔ Rofi integration with theme support
-#   ✔ Lightweight (~2ms overhead on cache hits)
-#
-# Dependencies:
-#   → Core: bspwm, xrandr, xdpyinfo, rofi, xxhsum (xxhash)
-#   → Media: feh, imagemagick
-#   → GNU: findutils, coreutils
-
-# Copyright (C) 2021-2025 gh0stzk <z0mbi3.zk@protonmail.com>
-# Licensed under GPL-3.0 license
+# WallSelect — Stateful wallpaper selector for bspwm rices
 # =============================================================
+# Author: gh0stzk (modified)
+# Date: 01.02.2026
+# =============================================================
+set -eu
 
-# Set some variables
-read -r current_rice <"$HOME"/.config/bspwm/rices/.rice
-wall_dir="$HOME/.config/bspwm/rices/$current_rice/wallpapers"
-cacheDir="$HOME/.cache/$USER/$current_rice"
+# -------------------------------------------------------------
+# Paths & state
+# -------------------------------------------------------------
+bspwm_dir="$HOME/.config/bspwm"
+read -r current_rice <"$bspwm_dir/rices/.rice"
 
-# Create cache dir if not exists
-[ -d "$cacheDir" ] || mkdir -p "$cacheDir"
+wall_dir="$bspwm_dir/rices/$current_rice/wallpapers"
+theme_cfg="$bspwm_dir/rices/$current_rice/theme-config.sh"
 
-rofi_command="rofi -dmenu -theme $HOME/.config/bspwm/config/rofi/themes/WallSelect.rasi"
+cache_dir="$HOME/.cache/$USER/$current_rice"
+mkdir -p "$cache_dir"
 
-# Detect number of cores and set a sensible number of jobs
-get_optimal_jobs() {
-    cores=$(nproc)
-    if [ "$cores" -le 2 ]; then
-        echo 2
-    elif [ "$cores" -gt 4 ]; then
-        echo 4
-    else
-        echo $((cores - 1))
+rofi_theme="$bspwm_dir/config/rofi/themes/WallSelect.rasi"
+
+# -------------------------------------------------------------
+# Read current wallpaper (state)
+# -------------------------------------------------------------
+current_wall=$(
+  sed -n 's/^DEFAULT_WALL="\(.*\)"/\1/p' "$theme_cfg" 2>/dev/null | xargs -r basename
+)
+
+# -------------------------------------------------------------
+# Collect wallpapers (deterministic order)
+# -------------------------------------------------------------
+walls=$(
+  find "$wall_dir" -type f \
+    \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" \) \
+    -printf '%f\n' |
+    LC_ALL=C sort
+)
+
+# -------------------------------------------------------------
+# Compute selected index
+# -------------------------------------------------------------
+selected_index=-1
+index=0
+IFS='
+'
+for wall in $walls; do
+  [ "$wall" = "$current_wall" ] && {
+    selected_index=$index
+    break
+  }
+  index=$((index + 1))
+done
+unset IFS
+
+# -------------------------------------------------------------
+# Determine optimal number of parallel jobs
+# -------------------------------------------------------------
+get_jobs() {
+  cores=$(nproc)
+
+  if [ "$cores" -le 2 ]; then
+    echo 2
+  elif [ "$cores" -gt 4 ]; then
+    echo 4
+  else
+    echo $((cores - 1))
+  fi
+}
+JOBS=$(get_jobs)
+
+# -------------------------------------------------------------
+# Parallel thumbnail generation
+# -------------------------------------------------------------
+process_image() {
+  src="$1"
+  name=$(basename "$src")
+
+  cache="$cache_dir/$name"
+  hashf="$cache_dir/.$name.hash"
+  lock="$cache_dir/.lock_$name"
+
+  hash=$(xxh64sum "$src" | cut -d' ' -f1)
+
+  (
+    flock -x 9
+    if [ ! -f "$cache" ] || [ ! -f "$hashf" ] || [ "$hash" != "$(cat "$hashf" 2>/dev/null)" ]; then
+      magick "$src" -resize 500x500^ -gravity center -extent 500x500 "$cache"
+      echo "$hash" >"$hashf"
     fi
+    rm -f "$lock"
+  ) 9>"$lock"
 }
 
-PARALLEL_JOBS=$(get_optimal_jobs)
+export -f process_image
+export cache_dir
 
-process_func_def='process_image() {
-    imagen="$1"
-    nombre_archivo=$(basename "$imagen")
-    cache_file="${cacheDir}/${nombre_archivo}"
-    md5_file="${cacheDir}/.${nombre_archivo}.md5"
-    lock_file="${cacheDir}/.lock_${nombre_archivo}"
-    current_md5=$(xxh64sum "$imagen" | cut -d " " -f1)
-    (
-        flock -x 9
-        if [ ! -f "$cache_file" ] || [ ! -f "$md5_file" ] || [ "$current_md5" != "$(cat "$md5_file" 2>/dev/null)" ]; then
-            magick "$imagen" -resize 500x500^ -gravity center -extent 500x500 "$cache_file"
-            echo "$current_md5" > "$md5_file"
-        fi
-        rm -f "$lock_file"
-    ) 9>"$lock_file"
-}'
+rm -f "$cache_dir"/.lock_* 2>/dev/null || true
 
-export process_func_def cacheDir wall_dir
+find "$wall_dir" -type f \
+  \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" \) \
+  -print0 |
+  xargs -0 -P "$JOBS" -I {} sh -c 'process_image "$@"' _ {}
 
-# Clean old locks before starting
-rm -f "${cacheDir}"/.lock_* 2>/dev/null || true
-
-# Process files in parallel
-find "$wall_dir" -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" \) -print0 | \
-    xargs -0 -P "$PARALLEL_JOBS" -I {} sh -c "$process_func_def; process_image \"{}\""
-
-# Clean orphaned cache files and their locks
-for cached in "$cacheDir"/*; do
-    [ -f "$cached" ] || continue
-    original="${wall_dir}/$(basename "$cached")"
-    if [ ! -f "$original" ]; then
-        nombre_archivo=$(basename "$cached")
-        rm -f "$cached" \
-            "${cacheDir}/.${nombre_archivo}.md5" \
-            "${cacheDir}/.lock_${nombre_archivo}"
-    fi
+# -------------------------------------------------------------
+# Cleanup orphaned cache
+# -------------------------------------------------------------
+for cached in "$cache_dir"/*; do
+  [ -f "$cached" ] || continue
+  orig="$wall_dir/$(basename "$cached")"
+  if [ ! -f "$orig" ]; then
+    name=$(basename "$cached")
+    rm -f \
+      "$cached" \
+      "$cache_dir/.$name.hash" \
+      "$cache_dir/.lock_$name"
+  fi
 done
 
-# Clean any remaining lock files
-rm -f "${cacheDir}"/.lock_* 2>/dev/null || true
+rm -f "$cache_dir"/.lock_* 2>/dev/null || true
 
-# Launch rofi
-wall_selection=$(find "${wall_dir}" -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" \) -print0 |
-    xargs -0 basename -a |
-    LC_ALL=C sort |
-    while IFS= read -r A; do
-        printf '%s\000icon\037%s/%s\n' "$A" "$cacheDir" "$A"
-    done | $rofi_command)
+# -------------------------------------------------------------
+# Launch rofi (stateful)
+# -------------------------------------------------------------
+selection=$(
+  IFS='
+'
+  for w in $walls; do
+    printf '%s\000icon\037%s/%s\n' "$w" "$cache_dir" "$w"
+  done |
+    rofi -dmenu \
+      -theme "$rofi_theme" \
+      -selected-row "$selected_index"
+)
 
-# Set wallpaper
-[ -n "$wall_selection" ] && \
-    sed -i "$HOME/.config/bspwm/rices/$current_rice/theme-config.sh" \
-        -e 's/^ENGINE=.*/ENGINE="Default"/' \
-        -e "s|^DEFAULT_WALL=.*|DEFAULT_WALL=\"$wall_dir/$wall_selection\"|" && \
-    feh --bg-fill "${wall_dir}/${wall_selection}" && \
-    WallSync &
+# -------------------------------------------------------------
+# Apply wallpaper
+# -------------------------------------------------------------
+[ -n "$selection" ] || exit 0
+
+sed -i "$theme_cfg" \
+  -e 's/^ENGINE=.*/ENGINE="Default"/' \
+  -e "s|^DEFAULT_WALL=.*|DEFAULT_WALL=\"$wall_dir/$selection\"|"
+
+feh --bg-fill "$wall_dir/$selection"
+WallSync &

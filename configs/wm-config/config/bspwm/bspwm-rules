@@ -1,3 +1,19 @@
+# bspwm rule for pavucontrol
+# Generated from clicked window
+
+bspc rule -a pavucontrol -o \
+state=floating	# state	режим окна	tiled | *floating | fullscreen | \
+layer=normal	# layer	слой отображения	below | *normal | above | \
+rectangle=551x250+805+46	# rectangle	геометрия WxH+X+Y	WxH+X+Y | \
+monitor=0x00600006	# monitor	целевой монитор	*0x00600006 | \
+desktop=0x00600007	# desktop	целевой рабочий стол	*0x00600007 | \
+follow=off	# follow	забирать фокус при появлении	on | *off | \
+focus=off	# focus	можно ли фокусировать окно	on | *off | \
+center=on	# center	центрировать окно	*on | off | \
+sticky=true	# sticky	видно на всех рабочих столах	*true | false | \
+manage=on	# manage	управляется bspwm	*on | off
+
+
 # bspwm rule for TelegramDesktop
 # Generated from clicked window
 

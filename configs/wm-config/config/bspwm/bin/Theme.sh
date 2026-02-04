@@ -16,15 +16,13 @@
 # =============================================================
 
 # Current Rice
-read -r RICE < "$HOME"/.config/bspwm/rices/.rice
+read -r RICE <"$HOME"/.config/bspwm/rices/.rice
 # Load theme configuration
 source "$HOME"/.config/bspwm/rices/"$RICE"/theme-config.sh
 # Path to modules dir
 MODULE_DIR="$HOME/.config/bspwm/config/modules"
 
-
 # Load all the files in dir
 for module in "$MODULE_DIR"/*.sh; do
-    source "$module"
+  source "$module"
 done
-

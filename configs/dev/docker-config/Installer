@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 # ============================================================
 #
-# ██████╗  ██████╗  ██████╗██╗  ██╗███████╗██████╗ 
+# ██████╗  ██████╗  ██████╗██╗  ██╗███████╗██████╗
 # ██╔══██╗██╔═══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗
 # ██║  ██║██║   ██║██║     █████╔╝ █████╗  ██████╔╝
 # ██║  ██║██║   ██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗
 # ██████╔╝╚██████╔╝╚██████╗██║  ██╗███████╗██║  ██║
 # ╚═════╝  ╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
-# ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗     ███████╗██████╗ 
+# ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗     ███████╗██████╗
 # ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║     ██╔════╝██╔══██╗
 # ██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║     █████╗  ██████╔╝
 # ██║██║╚██╗██║╚════██║   ██║   ██╔══██║██║     ██║     ██╔══╝  ██╔══██╗
 # ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗███████╗██║  ██║
 # ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝
-#                                                                                                                          
+#
 #  Project  : Docker Installer
 #  Purpose  : Install docker config.
 #  Author   : nebolsinvasili
@@ -25,88 +25,84 @@
 #
 # ============================================================
 
-
 set -euo pipefail
 
 # ------------------------------------------------------------
 # Load modules
 # ------------------------------------------------------------
 LOGGING_MODULE="$DOTFILES/.settings/logging"
-[[ -r "$LOGGING_MODULE" ]] && source "$LOGGING_MODULE" \
-    || printf 'WARNING: logging module not found: %s\n' "$LOGGING_MODULE" >&2
+[[ -r "$LOGGING_MODULE" ]] && source "$LOGGING_MODULE" ||
+  printf 'WARNING: logging module not found: %s\n' "$LOGGING_MODULE" >&2
 
 LINKED_MODULE="$DOTFILES/.settings/linked"
-[[ -r "$LINKED_MODULE" ]] && source "$LINKED_MODULE" \
-    || printf 'WARNING: linked module not found: %s\n' "$LINKED_MODULE" >&2
+[[ -r "$LINKED_MODULE" ]] && source "$LINKED_MODULE" ||
+  printf 'WARNING: linked module not found: %s\n' "$LINKED_MODULE" >&2
 
 GIT_MODULE="$DOTFILES/.settings/git-utils"
-[[ -r "$GIT_MODULE" ]] && source "$GIT_MODULE" \
-    || printf 'WARNING: git utils module not found: %s\n' "$GIT_MODULE" >&2
+[[ -r "$GIT_MODULE" ]] && source "$GIT_MODULE" ||
+  printf 'WARNING: git utils module not found: %s\n' "$GIT_MODULE" >&2
 
 REPLACE_MODULE="$DOTFILES/.settings/replace"
-[[ -r "$REPLACE_MODULE" ]] && source "$REPLACE_MODULE" \
-    || printf 'WARNING: replace module not found: %s\n' "$REPLACE_MODULE" >&2
+[[ -r "$REPLACE_MODULE" ]] && source "$REPLACE_MODULE" ||
+  printf 'WARNING: replace module not found: %s\n' "$REPLACE_MODULE" >&2
 
 DepInst_MODULE="$DOTFILES/.settings/DependenciesInstaller"
-[[ -r "$DepInst_MODULE" ]] && source "$DepInst_MODULE" \
-    || printf 'WARNING: dependencies module not found: %s\n' "$DepInst_MODULE" >&2
-
+[[ -r "$DepInst_MODULE" ]] && source "$DepInst_MODULE" ||
+  printf 'WARNING: dependencies module not found: %s\n' "$DepInst_MODULE" >&2
 
 # ------------------------------------------------------------
 # Default values
 # ------------------------------------------------------------
 
-
-
 # ============================================================
 # Main function
 # ============================================================
 main() {
-    # Absolute path of running script
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    DEP="$SCRIPT_DIR/dependencies.toml"
-    LOG="$SCRIPT_DIR/installer.log"
+  # Absolute path of running script
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  DEP="$SCRIPT_DIR/dependencies.toml"
+  LOG="$SCRIPT_DIR/installer.log"
 
-    log_init "$LOG" && log_title "Docker installer started"
+  log_init "$LOG" && log_title "Docker installer started"
 
-    install_dependencies -d "$DEP" -l "$LOG" -m yay
+  install_dependencies -d "$DEP" -l "$LOG" -m yay
 
-    log_info -v "Starting docker.service"
-    if sudo systemctl start docker.service; then
-        log_ok -v "docker.service started"
-    else
-        log_error -v "Failed to start docker.service"
-        exit 3
-    fi
+  log_info -v "Starting docker.service"
+  if sudo systemctl start docker.service; then
+    log_ok -v "docker.service started"
+  else
+    log_error -v "Failed to start docker.service"
+    exit 3
+  fi
 
-    log_info -v "Enabling docker.service"
-    if sudo systemctl enable docker.service; then
-        log_ok -v "docker.service enabled"
-    else
-        log_error -v "Failed to enable docker.service"
-        exit 4
-    fi
+  log_info -v "Enabling docker.service"
+  if sudo systemctl enable docker.service; then
+    log_ok -v "docker.service enabled"
+  else
+    log_error -v "Failed to enable docker.service"
+    exit 4
+  fi
 
-    # Добавление пользователя в группу docker
-    log_info -v "Adding user '$USER' to docker group"
-    if sudo usermod -aG docker "$USER"; then
-        log_ok -v "User '$USER' added to docker group"
-    else
-        log_error -v "Failed to add user '$USER' to docker group"
-        exit 5
-    fi
+  # Добавление пользователя в группу docker
+  log_info -v "Adding user '$USER' to docker group"
+  if sudo usermod -aG docker "$USER"; then
+    log_ok -v "User '$USER' added to docker group"
+  else
+    log_error -v "Failed to add user '$USER' to docker group"
+    exit 5
+  fi
 
-    log_warn -v "Group change will take effect after relogin or newgrp"
-    newgrp docker <<EOF
+  log_warn -v "Group change will take effect after relogin or newgrp"
+  newgrp docker <<EOF
 echo "Docker group activated"
 EOF
 
-    stow_package -t "$HOME" -d "$SCRIPT_DIR/" -p "config"
+  stow_package -t "$HOME" -d "$SCRIPT_DIR/" -p "config"
 }
 
 # ============================================================
 # Main entry
 # ============================================================
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    main
+  main
 fi

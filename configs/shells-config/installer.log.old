@@ -1,4 +1,5 @@
-[2026-01-16 04:20:50] [INFO] 👤 Выберите пользователя для настройки:
-[2026-01-16 04:20:55] [INFO] Меняем shell на: zsh
-[2026-01-16 04:20:55] [OK] Shell изменён для пользователя nebolsinvasili
-[2026-01-16 04:20:55] [ERROR] Stow package not found: /home/nebolsinvasili/dotfiles/configs/shells-configconfig
+[2026-01-16 04:21:19] [INFO] 👤 Выберите пользователя для настройки:
+[2026-01-16 04:21:22] [INFO] Меняем shell на: zsh
+[2026-01-16 04:21:22] [OK] Shell изменён для пользователя nebolsinvasili
+[2026-01-16 04:21:22] [INFO] Stowing package 'config' → /home/nebolsinvasili
+[2026-01-16 04:21:22] [OK] Package 'config' deployed

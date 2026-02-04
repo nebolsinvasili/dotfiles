@@ -1,0 +1,8 @@
+[base]
+packages = [ "pulseaudio" ]
+
+[ui]
+packages = [ "pavucontrol" ]
+
+[install-utils]
+packages = [ "stow" ]

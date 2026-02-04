@@ -41,14 +41,10 @@ if [ -d "$HOME/.local/bin" ] ;
   then PATH="$HOME/.local/bin:$PATH"
 fi
 
-# if [ -x "$(command -v tmux)" ] && [ -n "${DISPLAY}" ] && [ -z "${TMUX}" ]; then
-#     exec tmux new-session -A -s ${USER} >/dev/null 2>&1
-# fi
-
 # PyEnv
-#export PYENV_ROOT="$HOME/.pyenv"
-#export PATH="$PYENV_ROOT/bin:$PATH"
-#eval "$(pyenv init --path)"
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init --path)"
 
 # Set the directory we want to store zinit and plugins
 ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
@@ -74,8 +70,8 @@ zinit light Aloxaf/fzf-tab
 zinit snippet OMZP::sudo
 zinit snippet OMZP::colored-man-pages
 zinit snippet OMZP::colorize
-#zinit snippet OMZP::pyenv
-#zinit snippet OMZP::poetry-env
+zinit snippet OMZP::pyenv
+zinit snippet OMZP::poetry-env
 #zinit snippet OMZP::docker
 #zinit snippet OMZP::docker-compose
 zinit snippet OMZP::command-not-found
