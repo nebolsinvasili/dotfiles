@@ -1,7 +1,8 @@
-[2026-01-16 04:29:59] [INFO] Using package manager: yay
-[2026-01-16 04:29:59] [OK] Package database updated
-[2026-01-16 04:29:59] [INFO] Installing git ...
-[2026-01-16 04:30:01] [OK] All packages in block 'base' installed successfully
-[2026-01-16 04:30:01] [INFO] Installing stow ...
-[2026-01-16 04:30:02] [OK] All packages in block 'install-utils' installed successfully
-[2026-01-16 04:30:02] [INFO] Stowing package 'config' → /home/nebolsinvasili
+[2026-01-16 04:30:21] [INFO] Using package manager: yay
+[2026-01-16 04:30:22] [OK] Package database updated
+[2026-01-16 04:30:22] [INFO] Installing git ...
+[2026-01-16 04:30:23] [OK] All packages in block 'base' installed successfully
+[2026-01-16 04:30:23] [INFO] Installing stow ...
+[2026-01-16 04:30:24] [OK] All packages in block 'install-utils' installed successfully
+[2026-01-16 04:30:24] [INFO] Stowing package 'config' → /home/nebolsinvasili
+[2026-01-16 04:30:24] [OK] Package 'config' deployed

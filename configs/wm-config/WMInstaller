@@ -71,7 +71,7 @@ main() {
 
   log_init "$LOG" && log_title "Shell installer started"
 
-  # install_dependencies -d "$DEP" -l "$LOG" -m yay
+  install_dependencies -d "$DEP" -l "$LOG" -m yay
 
   cd $DOTFILES/programs/terminal/xorg/kitty && ./install.sh && cd $SCRIPT_DIR
 

@@ -40,7 +40,7 @@ packages = [
 [filemanager]
 packages = [
   "thunar",                    # Графический файловый менеджер
-  "yazi",                      # TUI файловый менеджер
+  "ranger",                      # TUI файловый менеджер
   "tumbler",                   # Генерация миниатюр
   "gvfs-mtp",                  # Поддержка MTP-устройств
   "xdg-user-dirs"              # Стандартные пользовательские каталоги

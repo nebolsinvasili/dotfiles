@@ -1,0 +1,15 @@
+[2026-01-09 00:44:15] [INFO] Using package manager: yay
+[2026-01-09 00:44:15] [OK] Package database updated
+[2026-01-09 00:44:15] [INFO] Installing docker ...
+[2026-01-09 00:44:16] [INFO] Installing docker-compose ...
+[2026-01-09 00:44:17] [OK] All packages in block 'base' installed successfully
+[2026-01-09 00:44:17] [INFO] Installing stow ...
+[2026-01-09 00:44:17] [OK] All packages in block 'install-utils' installed successfully
+[2026-01-09 00:44:17] [INFO] Starting docker.service
+[2026-01-09 00:44:17] [OK] docker.service started
+[2026-01-09 00:44:17] [INFO] Enabling docker.service
+[2026-01-09 00:44:18] [OK] docker.service enabled
+[2026-01-09 00:44:18] [INFO] Adding user 'nebolsinvasili' to docker group
+[2026-01-09 00:44:18] [OK] User 'nebolsinvasili' added to docker group
+[2026-01-09 00:44:18] [WARN] Group change will take effect after relogin or newgrp
+[2026-01-09 00:44:18] [ERROR] Stow package not found: /home/nebolsinvasili/dotfiles/configs/dev/docker-config//config

@@ -1,7 +1,10 @@
-[2026-01-16 04:30:51] [INFO] [1mSelect SSH key type:(B[m
-[2026-01-16 04:31:09] [WARN] Key file already exists: /home/nebolsinvasili/.ssh/id_ed25519_github
-[2026-01-16 04:31:14] [WARN] Existing key will be overwritten without backup.
-[2026-01-16 04:31:28] [INFO] The following SSH key will be created:
-[2026-01-16 04:31:32] [INFO] Generating SSH key...
-[2026-01-16 04:31:32] [OK] SSH key successfully generated.
-[2026-01-16 04:31:32] [INFO] Stowing package 'config' → /home/nebolsinvasili
+[2026-01-16 04:32:44] [INFO] [1mSelect SSH key type:(B[m
+[2026-01-16 04:33:15] [INFO] The following SSH key will be created:
+[2026-01-16 04:33:17] [INFO] Generating SSH key...
+[2026-01-16 04:33:17] [OK] SSH key successfully generated.
+[2026-01-16 04:33:17] [INFO] Stowing package 'config' → /home/nebolsinvasili
+[2026-01-16 04:33:17] [OK] Package 'config' deployed
+[2026-01-16 04:33:17] [INFO] Starting ssh-agent and adding key...
+[2026-01-16 04:33:26] [OK] Key added to ssh-agent.
+[2026-01-16 04:33:26] [OK] Public key copied to clipboard (X11).
+[2026-01-16 04:33:26] [OK] SSH key generation completed successfully.

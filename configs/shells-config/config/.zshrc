@@ -70,8 +70,8 @@ zinit light Aloxaf/fzf-tab
 zinit snippet OMZP::sudo
 zinit snippet OMZP::colored-man-pages
 zinit snippet OMZP::colorize
-zinit snippet OMZP::pyenv
-zinit snippet OMZP::poetry-env
+#zinit snippet OMZP::pyenv
+#zinit snippet OMZP::poetry-env
 #zinit snippet OMZP::docker
 #zinit snippet OMZP::docker-compose
 zinit snippet OMZP::command-not-found
